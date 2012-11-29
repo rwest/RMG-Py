@@ -651,11 +651,14 @@ def loadChemkinFile(path, dictionaryPath=None):
                 comments = ''
                 
                 line = f.readline()
-                while line != '' and 'END' not in line:
+                while line != '':
                     
                     lineStartsWithComment = line.startswith('!') 
                     line, comment = removeCommentFromLine(line)
                     line = line.strip(); comment = comment.strip()
+                
+                    if 'end' in line or 'END' in line:
+                        break
                 
                     if 'rev' in line or 'REV' in line:
                         # can no longer name reactants rev...
@@ -1024,7 +1027,7 @@ def writeKineticsEntry(reaction, speciesList):
             kinetics.n.value_si,
             kinetics.Ea.value_si / 4184.
         )
-    elif isinstance(kinetics, Lindemann):
+    elif isinstance(kinetics, (Lindemann,Troe)):
         arrhenius = kinetics.arrheniusHigh
         string += '{0:<9.3e} {1:<9.3f} {2:<9.3f}'.format(
             arrhenius.A.value_si / (arrhenius.T0.value_si ** arrhenius.n.value_si) * 1.0e6 ** (numReactants - 1),
@@ -1108,6 +1111,28 @@ def writeKineticsEntry(reaction, speciesList):
 
 ################################################################################
 
+def markDuplicateReactions(reactions):
+    """
+    For a given list of `reactions`, mark all of the duplicate reactions as
+    understood by Chemkin.
+    """
+    for index1 in range(len(reactions)):
+        reaction1 = reactions[index1]
+        for index2 in range(index1+1, len(reactions)):
+            reaction2 = reactions[index2]
+            if reaction1.__class__ != reaction2.__class__:
+                # TemplateReaction, LibraryReaction, and PDepReaction cannot be
+                # duplicates of one another
+                continue
+            if reaction1.reactants == reaction2.reactants and reaction1.products == reaction2.products:
+                if reaction1.duplicate and reaction2.duplicate:
+                    continue
+                else:
+                    if not reaction1.duplicate:
+                        logging.warning('Marked reaction {0} as duplicate for saving to Chemkin file.'.format(reaction1))
+                    reaction1.duplicate = True
+                    reaction2.duplicate = True
+
 def saveSpeciesDictionary(path, species):
     """
     Save the given list of `species` as adjacency lists in a text file `path` 
@@ -1123,6 +1148,9 @@ def saveChemkinFile(path, species, reactions):
     Save a Chemkin input file to `path` on disk containing the provided lists
     of `species` and `reactions`.
     """
+    # Check for duplicate
+    markDuplicateReactions(reactions)
+    
     f = open(path, 'w')
     
     sorted_species = sorted(species, key=lambda species: species.index)
