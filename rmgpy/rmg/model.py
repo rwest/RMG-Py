@@ -55,15 +55,24 @@ import rmgpy.data.rmg
 
 from pdep import PDepReaction, PDepNetwork, PressureDependenceError
 
+
+pool = None
+
 def initializer(database):
     global __database
     __database = database
     print "Setting global database in {0}".format(multiprocessing.current_process().name)
 def makeThermoForSpecies(spec):
+    """
+    Make thermo for a species.
+    
+    Returns the thermo, and the conformer (which has E0) 
+    which is set as a side-effect of Species.generateThermoData
+    """
     global __database
-    logging.info("Generating thermo for {0} on {1}".format(spec.label,multiprocessing.current_process().name))
+    #logging.info("Generating thermo for {0} on {1}".format(spec.label,multiprocessing.current_process().name))
     spec.generateThermoData(__database)
-    return spec.thermo
+    return spec.thermo, spec.conformer
 
 ################################################################################
 
@@ -238,7 +247,6 @@ class CoreEdgeReactionModel:
         self.outputReactionList = []
         self.pressureDependence = None
         self.kineticsEstimator = 'group additivity'
-        self.pool = None
 
     def checkForExistingSpecies(self, molecule):
         """
@@ -669,12 +677,15 @@ class CoreEdgeReactionModel:
         """
         # Set up pool of worker processes (number depends on number of cores)
         # and set each with the database
-        if self.pool is None:
+        global pool
+        if pool is None:
             database = rmgpy.data.rmg.database
-            self.pool = multiprocessing.Pool(initializer=initializer,initargs=(database,))
-        outputs = self.pool.map(makeThermoForSpecies, listOfSpecies)
+            pool = multiprocessing.Pool(initializer=initializer,initargs=(database,))
+        outputs = pool.map(makeThermoForSpecies, listOfSpecies)
         for spec, thermo in zip(listOfSpecies, outputs):
-            spec.thermo = thermo
+            spec.thermo = thermo[0]
+            spec.conformer = thermo[1]
+            
 
 
     def processNewReactions(self, newReactions, newSpecies, pdepNetwork=None):
