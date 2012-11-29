@@ -57,10 +57,16 @@ from pdep import PDepReaction, PDepNetwork, PressureDependenceError
 
 
 def makeThermoForSpecies(spec, database=None):
+    """
+    Make thermo for a species.
+    
+    Returns the thermo, and the conformer (which has E0) 
+    which is set as a side-effect of Species.generateThermoData
+    """
     #global __database
     #logging.info("Generating thermo for {0} on {1}".format(spec.label,multiprocessing.current_process().name))
     spec.generateThermoData(database)
-    return spec.thermo
+    return spec.thermo, spec.conformer
 ################################################################################
 
 class Species(rmgpy.species.Species):
@@ -674,7 +680,8 @@ class CoreEdgeReactionModel:
         database = rmgpy.data.rmg.database
         outputs = futures.map(makeThermoForSpecies, listOfSpecies, database=database)
         for spec, thermo in zip(listOfSpecies, outputs):
-            spec.thermo = thermo
+            spec.thermo = thermo[0]
+            spec.conformer = thermo[1]
 
 
     def processNewReactions(self, newReactions, newSpecies, pdepNetwork=None):
