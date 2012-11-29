@@ -37,6 +37,8 @@ import math
 import numpy
 import os.path
 
+from scoop import futures
+
 from rmgpy.display import display
 
 import rmgpy.constants as constants
@@ -54,6 +56,11 @@ import rmgpy.data.rmg
 from pdep import PDepReaction, PDepNetwork, PressureDependenceError
 
 
+def makeThermoForSpecies(spec, database=None):
+    #global __database
+    #logging.info("Generating thermo for {0} on {1}".format(spec.label,multiprocessing.current_process().name))
+    spec.generateThermoData(database)
+    return spec.thermo
 ################################################################################
 
 class Species(rmgpy.species.Species):
@@ -664,8 +671,11 @@ class CoreEdgeReactionModel:
         
         Results are stored in the species objects themselves.
         """
-        for spec in listOfSpecies:
-            spec.generateThermoData(database)
+        database = rmgpy.data.rmg.database
+        outputs = futures.map(makeThermoForSpecies, listOfSpecies, database=database)
+        for spec, thermo in zip(listOfSpecies, outputs):
+            spec.thermo = thermo
+
 
     def processNewReactions(self, newReactions, newSpecies, pdepNetwork=None):
         """
