@@ -37,7 +37,7 @@ import math
 import numpy
 import os.path
 
-from scoop import futures
+import multiprocessing
 
 from rmgpy.display import display
 
@@ -55,12 +55,16 @@ import rmgpy.data.rmg
 
 from pdep import PDepReaction, PDepNetwork, PressureDependenceError
 
-
-def makeThermoForSpecies(spec, database=None):
-    #global __database
-    #logging.info("Generating thermo for {0} on {1}".format(spec.label,multiprocessing.current_process().name))
-    spec.generateThermoData(database)
+def initializer(database):
+    global __database
+    __database = database
+    print "Setting global database in {0}".format(multiprocessing.current_process().name)
+def makeThermoForSpecies(spec):
+    global __database
+    logging.info("Generating thermo for {0} on {1}".format(spec.label,multiprocessing.current_process().name))
+    spec.generateThermoData(__database)
     return spec.thermo
+
 ################################################################################
 
 class Species(rmgpy.species.Species):
@@ -234,6 +238,7 @@ class CoreEdgeReactionModel:
         self.outputReactionList = []
         self.pressureDependence = None
         self.kineticsEstimator = 'group additivity'
+        self.pool = None
 
     def checkForExistingSpecies(self, molecule):
         """
@@ -662,8 +667,12 @@ class CoreEdgeReactionModel:
         
         Results are stored in the species objects themselves.
         """
-        database = rmgpy.data.rmg.database
-        outputs = futures.map(makeThermoForSpecies, listOfSpecies, database=database)
+        # Set up pool of worker processes (number depends on number of cores)
+        # and set each with the database
+        if self.pool is None:
+            database = rmgpy.data.rmg.database
+            self.pool = multiprocessing.Pool(initializer=initializer,initargs=(database,))
+        outputs = self.pool.map(makeThermoForSpecies, listOfSpecies)
         for spec, thermo in zip(listOfSpecies, outputs):
             spec.thermo = thermo
 
