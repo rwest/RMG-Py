@@ -212,16 +212,6 @@ class RMG:
             logging.info('Filling in rate rules in kinetics families by averaging...')
             for family in self.database.kinetics.families.values():
                 family.fillKineticsRulesByAveragingUp()
-                
-    def saveDatabaseToPickle(self):
-        """
-        Save the database (once loaded) to a pickle file.
-        
-        This is so that other workers (in a parallel computing environment)
-        can load it easily from disk.
-        """
-        filename = os.path.join(self.outputDirectory,'database.pkl')
-        pass
     
     def initialize(self, args):
         """
@@ -274,7 +264,8 @@ class RMG:
         self.loadDatabase()
         
         # Save database pickle
-        self.saveDatabaseToPickle()
+        databaseFilePath = os.path.join(self.outputDirectory,'database.pkl')
+        self.database.saveToPickle(databaseFilePath)
     
         # Set wall time
         if args.walltime == '0': 
