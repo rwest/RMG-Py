@@ -55,17 +55,21 @@ import rmgpy.data.rmg
 
 from pdep import PDepReaction, PDepNetwork, PressureDependenceError
 
+__database = None
 
-def makeThermoForSpecies(spec, database=None):
+def makeThermoForSpecies(spec):
     """
     Make thermo for a species.
     
     Returns the thermo, and the conformer (which has E0) 
     which is set as a side-effect of Species.generateThermoData
     """
-    #global __database
+    global __database
+    if __database == None:
+        print """Load the database from some pickle file"""
+        
     #logging.info("Generating thermo for {0} on {1}".format(spec.label,multiprocessing.current_process().name))
-    spec.generateThermoData(database)
+    spec.generateThermoData(__database)
     return spec.thermo, spec.conformer
 ################################################################################
 
@@ -677,8 +681,7 @@ class CoreEdgeReactionModel:
         
         Results are stored in the species objects themselves.
         """
-        database = rmgpy.data.rmg.database
-        outputs = futures.map(makeThermoForSpecies, listOfSpecies, database=database)
+        outputs = futures.map(makeThermoForSpecies, listOfSpecies)
         for spec, thermo in zip(listOfSpecies, outputs):
             spec.thermo = thermo[0]
             spec.conformer = thermo[1]
