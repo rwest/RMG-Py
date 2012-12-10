@@ -264,7 +264,8 @@ class RMG:
         self.loadDatabase()
         
         # Save database pickle
-        databaseFilePath = os.path.join(self.outputDirectory,'database.pkl')
+        #databaseFilePath = os.path.join(self.outputDirectory,'database.pkl')
+        databaseFilePath = os.environ['RMG_DB_FILE']
         self.database.saveToPickle(databaseFilePath)
     
         # Set wall time
