@@ -44,9 +44,6 @@ from statmech import StatmechDatabase
 # Module-level variable to store the (only) instance of RMGDatabase in use.
 database = None
 
-#: Module-level variable to store the path to the pickle of the current database
-databaseFilePath = None
-
 ################################################################################
 
 class RMGDatabase:
@@ -189,7 +186,7 @@ class RMGDatabase:
         import cPickle
         global databaseFilePath
         databaseFilePath = path
-        logging.info('Saving database pickle file...')
+        logging.info('Saving database pickle file {0!s}'.format(databaseFilePath))
         f = open(path, 'wb')
         cPickle.dump(self, f, cPickle.HIGHEST_PROTOCOL)
         f.close()

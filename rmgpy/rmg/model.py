@@ -56,6 +56,8 @@ import rmgpy.data.rmg
 from pdep import PDepReaction, PDepNetwork, PressureDependenceError
 
 __database = None
+
+
 def makeThermoForSpecies(spec):
     """
     Make thermo for a species.
@@ -67,7 +69,7 @@ def makeThermoForSpecies(spec):
     if __database == None:
         """Load the database from some pickle file"""
         import cPickle, logging
-        filename = rmgpy.data.rmg.databaseFilePath
+        filename = os.environ['RMG_DB_FILE']
         logging.info('Loading database pickle file from {0!r}'.format(filename))
         f = open(filename, 'rb')
         __database = cPickle.load(f)
