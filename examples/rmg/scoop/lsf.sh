@@ -9,6 +9,8 @@
 # the SCOOP-enabled parallel version of RMG-Py across 8 CPUs on
 # a number of different compute nodes on a (potentially heterogeneous) cluster.
 
+source ~/.bash_profile
+
 LAMHOST_FILE=hosts
 
 # start a new host file from scratch
@@ -51,8 +53,8 @@ do
 done
 # last thing added to LAMHOST_FILE
 #echo "# end of LAMHOST file" >> $LAMHOST_FILE
-echo "Your lamboot hostfile looks like:" >> $LOGFILE
-cat $LAMHOST_FILE >> $LOGFILE
+echo "Your lamboot hostfile looks like:"
+cat $LAMHOST_FILE
 
 export RMG_DB_FILE=$PWD/database.pkl
 python -m scoop -vv --hostfile $LAMHOST_FILE $RMGpy/rmg.py input.py > RMG.stdout.log
