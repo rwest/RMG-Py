@@ -5,7 +5,7 @@
 #BSUB -e error_log
 #BSUB -q medium_priority
 
-# This is a job submission file for a LAVA queuing system to run
+# This is a job submission file for a LSF queuing system to run
 # the SCOOP-enabled parallel version of RMG-Py across 8 CPUs on
 # a number of different compute nodes on a (potentially heterogeneous) cluster.
 
