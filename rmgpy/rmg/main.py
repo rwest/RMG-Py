@@ -40,6 +40,9 @@ import logging
 import time
 import shutil
 import numpy
+import gc
+import re
+import subprocess
 try:
     import xlwt
 except ImportError:
@@ -320,7 +323,31 @@ class RMG:
         Execute an RMG job using the command-line arguments `args` as returned
         by the :mod:`argparse` package.
         """
-    
+        
+        #If it looks like we're in a PBS envronment, define a function get_pbs_stats() that returns a dict of the resource usage"
+        pbs_jobid = os.getenv('PBS_JOBID')
+        if pbs_jobid:
+            logging.info("Running under PBS with Job ID {0}".format(pbs_jobid))
+            # Make this shell once, and keep it alive, to avoid repeated forking
+            shell = subprocess.Popen('bash',bufsize=1,stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+            def get_pbs_stats():
+                shell.stdin.write('qstat -f {0} | egrep "resources_used"; echo END_OF_OUTPUT\n'.format(pbs_jobid))
+                line = shell.stdout.readline()
+                output = {}
+                while line.strip() != 'END_OF_OUTPUT':
+                    match = re.search('resources_used.(\S+) = (.*)',line)
+                    if match:
+                        output[match.group(1)] = match.group(2)
+                    else:
+                        output[len(output)+1] = line
+                    line = shell.stdout.readline()
+                return output
+        else:
+            def get_pbs_stats():
+                return {}
+        for key,value in get_pbs_stats().iteritems():
+            logging.info('    PBS {0}: {1}'.format(key,value))
+
         self.initialize(args)
         
         # RMG execution statistics
@@ -331,6 +358,7 @@ class RMG:
         execTime = []
         restartSize = []
         memoryUse = []
+        pbsInfo = []
 
         self.done = False
         self.saveEverything()
@@ -416,20 +444,26 @@ class RMG:
             days = (elapsed - seconds - minutes * 60 - hours * 3600) / (3600 * 24)
             logging.info('    Execution time (DD:HH:MM:SS): '
                 '{0:02}:{1:02}:{2:02}:{3:02}'.format(int(days), int(hours), int(minutes), int(seconds)))
+            pbsInfo.append(get_pbs_stats())
+            process = None
             try:
                 import psutil
                 process = psutil.Process(os.getpid())
                 rss, vms = process.get_memory_info()
                 memoryUse.append(rss / 1024.0 / 1024.0)
                 logging.info('    Memory used: %.2f MB' % (memoryUse[-1]))
+                logging.info(repr(process.get_cpu_times()))
             except ImportError:
                 memoryUse.append(0.0)
+            # Print PBS job usage info, if possible
+            for key,value in pbsInfo[-1].iteritems():
+                logging.info('    PBS {0}: {1}'.format(key,value))
             if os.path.exists(os.path.join(self.outputDirectory,'restart.pkl.gz')):
                 restartSize.append(os.path.getsize(os.path.join(self.outputDirectory,'restart.pkl.gz')) / 1.0e6)
                 logging.info('    Restart file size: %.2f MB' % (restartSize[-1]))
             else:
                 restartSize.append(0.0)
-            self.saveExecutionStatistics(execTime, coreSpeciesCount, coreReactionCount, edgeSpeciesCount, edgeReactionCount, memoryUse, restartSize)
+            self.saveExecutionStatistics(execTime, coreSpeciesCount, coreReactionCount, edgeSpeciesCount, edgeReactionCount, memoryUse, restartSize, pbsInfo)
             if self.generatePlots:
                 self.generateExecutionPlots(execTime, coreSpeciesCount, coreReactionCount, edgeSpeciesCount, edgeReactionCount, memoryUse, restartSize)
     
@@ -657,7 +691,7 @@ class RMG:
         f.close()
     
     def saveExecutionStatistics(self, execTime, coreSpeciesCount, coreReactionCount,
-        edgeSpeciesCount, edgeReactionCount, memoryUse, restartSize):
+        edgeSpeciesCount, edgeReactionCount, memoryUse, restartSize, pbsInfo):
         """
         Save the statistics of the RMG job to an Excel spreadsheet for easy viewing
         after the run is complete. The statistics are saved to the file
@@ -711,6 +745,13 @@ class RMG:
         sheet.write(0,6,'Restart file size (MB)')
         for i, memory in enumerate(restartSize):
             sheet.write(i+1,6,memory)
+        
+        # Then add whatever PBS info you have
+        for number, name in enumerate(sorted(pbsInfo[0].keys())):
+            column = number+7
+            sheet.write(0,column,'PBS {0}'.format(name))
+            for i, dictionary in enumerate(pbsInfo):
+                sheet.write(i+1,column,dictionary[name])
     
         # Save workbook to file
         fstr = os.path.join(self.outputDirectory, 'statistics.xls')
