@@ -420,7 +420,7 @@ class RMG:
                 import psutil
                 process = psutil.Process(os.getpid())
                 rss, vms = process.get_memory_info()
-                memoryUse.append(rss / 1.0e6)
+                memoryUse.append(rss / 1024.0 / 1024.0)
                 logging.info('    Memory used: %.2f MB' % (memoryUse[-1]))
             except ImportError:
                 memoryUse.append(0.0)
