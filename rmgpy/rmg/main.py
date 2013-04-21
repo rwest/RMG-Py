@@ -458,6 +458,11 @@ class RMG:
             # Print PBS job usage info, if possible
             for key,value in pbsInfo[-1].iteritems():
                 logging.info('    PBS {0}: {1}'.format(key,value))
+            #logging.info("Garbage collecting...")
+            #gc.collect(2)
+            #if process:
+            #    logging.info(repr(process.get_memory_info()))
+   
             if os.path.exists(os.path.join(self.outputDirectory,'restart.pkl.gz')):
                 restartSize.append(os.path.getsize(os.path.join(self.outputDirectory,'restart.pkl.gz')) / 1.0e6)
                 logging.info('    Restart file size: %.2f MB' % (restartSize[-1]))
