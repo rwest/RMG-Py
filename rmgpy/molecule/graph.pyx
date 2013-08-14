@@ -1,3 +1,6 @@
+# encoding: utf-8
+"# cython: profile=True"
+
 ################################################################################
 #
 #   RMG - Reaction Mechanism Generator
@@ -31,7 +34,7 @@ efficient isomorphism functions. This module also contains base classes for
 the vertices and edges (:class:`Vertex` and :class:`Edge`, respectively) that
 are the components of a graph.
 """
-
+cimport cython
 import logging
 from .vf2 cimport VF2
 
@@ -88,6 +91,7 @@ cdef class Vertex(object):
         semantic information is associated with each vertex, and therefore
         simply returns a new :class:`Vertex` object.
         """
+        cdef Vertex new
         new = Vertex()
         return new
 
@@ -160,6 +164,7 @@ cdef class Edge(object):
         simply returns a new :class:`Edge` object. Note that the vertices are
         not copied in this implementation.
         """
+        cdef Edge new
         new = Edge(self.vertex1, self.vertex2)
         return new
 
@@ -207,7 +212,7 @@ cdef class Graph:
     or the :meth:`getEdges` method.
     """
 
-    def __init__(self, vertices=None):
+    def __init__(self, list vertices=None):
         self.vertices = vertices or []
         
     def __reduce__(self):
@@ -285,6 +290,8 @@ cdef class Graph:
         del edge.vertex1.edges[edge.vertex2]
         del edge.vertex2.edges[edge.vertex1]
 
+    @cython.nonecheck(False)
+    @cython.boundscheck(False)
     cpdef Graph copy(self, bint deep=False):
         """
         Create a copy of the current graph. If `deep` is ``True``, a deep copy
@@ -293,31 +300,36 @@ cdef class Graph:
         original vertices and edges are used in the new graph.
         """
         cdef Graph other
-        cdef Vertex vertex, vertex1, vertex2
+        cdef Vertex vertex, vertex1, vertex2, other_vertex1
         cdef Edge edge
         cdef dict edges, mapping
-        cdef list vertices
+        cdef list vertices, other_vertices
         cdef int index1, index2
         
         other = Graph()
         vertices = self.vertices
         mapping = {}
+        #cdef vector[int] mapping
+        cdef int i
         for vertex in vertices:
             if deep:
-                vertex2 = other.addVertex(vertex.copy())
-                mapping[vertex] = vertex2
+                other_vertex1 = other.addVertex(vertex.copy())
+                mapping[vertex] = other_vertex1
             else:
                 edges = vertex.edges
                 other.addVertex(vertex)
                 vertex.edges = edges
+        other_vertices = other.vertices
         if deep:
+            i=0
             for vertex1 in vertices:
-                for vertex2 in vertex1.edges:
-                    edge = vertex1.edges[vertex2]
+                other_vertex1 = other_vertices[i]
+                for vertex2, edge in vertex1.edges.iteritems():
                     edge = edge.copy()
-                    edge.vertex1 = mapping[vertex1]
+                    edge.vertex1 = other_vertex1
                     edge.vertex2 = mapping[vertex2]
                     other.addEdge(edge)
+                i += 1
         return other
 
     cpdef Graph merge(self, Graph other):

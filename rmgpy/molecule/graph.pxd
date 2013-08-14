@@ -1,3 +1,6 @@
+# encoding: utf-8
+"# cython: profile=True"
+
 ################################################################################
 #
 #   RMG - Reaction Mechanism Generator

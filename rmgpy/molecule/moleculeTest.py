@@ -948,3 +948,7 @@ class TestMolecule(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main( testRunner = unittest.TextTestRunner(verbosity=2) )
+    
+    print "test"
+    import timeit
+    timeit.Timer('for i in xrange(10): m.copy()', 'gc.enable(); m=Molecule(SMILES="CCC#CC=O");').timeit()
