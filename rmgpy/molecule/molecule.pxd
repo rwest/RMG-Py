@@ -60,6 +60,8 @@ cdef class Atom(Vertex):
 
     cpdef decrementRadical(self)
     
+    cpdef setSpinMultiplicity(self, int spinMultiplicity)
+
 ################################################################################
 
 cpdef object SMILEwriter

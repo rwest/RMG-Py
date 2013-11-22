@@ -299,6 +299,17 @@ class Atom(Vertex):
             for i in range(abs(action[2])): self.decrementRadical()
         else:
             raise ActionError('Unable to update Atom: Invalid action {0}".'.format(action))
+        
+    def setSpinMultiplicity(self,spinMultiplicity):
+        """
+        Set the spin multiplicity.
+        """
+        # Set the spin multiplicity
+        self.spinMultiplicity = spinMultiplicity
+        if self.spinMultiplicity < 0:
+            raise ActionError('Unable to update Atom due to spin multiplicity : Invalid spin multiplicity set "{0}".'.format(self.spinMultiplicity))
+        self.updateCharge()
+        
 
 ################################################################################
 
