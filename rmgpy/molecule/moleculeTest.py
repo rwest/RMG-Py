@@ -943,6 +943,48 @@ class TestMolecule(unittest.TestCase):
         This is a "hard" test that currently fails.
         """
         self.assertEqual(Molecule().fromSMILES('CC#CC').countInternalRotors(), 1)
+        
+    def testGenerateResonanceIsomersStraight(self):
+        """
+        Test that we can generate resonance isomers for C=C[CH]C
+        """
+        molecule = Molecule().fromSMILES('C=C[CH]C')
+        isomers = molecule.generateResonanceIsomers()
+        expected = set([Molecule.fromSmiles(s) for s in ['C=C[CH]C', '[CH2]C=CC']])
+        self.assertEqual(isomers, expected)
+        
+    def testGenerateResonanceIsomersBenzene(self):
+        """
+        Test that we can generate resonance isomers for benzene
+        """
+        molecule = Molecule().fromSMILES('C1=CC=CC=C1')
+        isomers = molecule.generateResonanceIsomers()
+        expected = set([ Molecule().fromAdjacencyList("""
+1 C 0 {2,B} {6,B}
+2 C 0 {1,B} {3,B}
+3 C 0 {2,B} {4,B}
+4 C 0 {3,B} {5,B}
+5 C 0 {4,B} {6,B}
+6 C 0 {1,B} {5,B}
+""" ), 
+                        Molecule().fromAdjacencyList("""
+1 C 0 {2,D} {6,S}
+2 C 0 {1,D} {3,S}
+3 C 0 {2,S} {4,D}
+4 C 0 {3,D} {5,S}
+5 C 0 {4,S} {6,D}
+6 C 0 {1,S} {5,D}
+"""),
+                        Molecule().fromAdjacencyList("""
+1 C 0 {2,S} {6,D}
+2 C 0 {1,S} {3,D}
+3 C 0 {2,D} {4,S}
+4 C 0 {3,S} {5,D}
+5 C 0 {4,D} {6,S}
+6 C 0 {1,D} {5,S}
+""")
+                        ])
+        self.assertEqual(isomers,expected)
 
 ################################################################################
 
