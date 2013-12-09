@@ -1653,9 +1653,12 @@ class CoreEdgeReactionModel:
         from rmgpy.chemkin import saveChemkinFile, saveSpeciesDictionary, saveTransportFile
         speciesList = self.core.species + self.outputSpeciesList
         rxnList = self.core.reactions + self.outputReactionList
-        saveChemkinFile(path, speciesList, rxnList, verbose = False, checkForDuplicates=False) # We should already have marked everything as duplicates by now
+        saveChemkinFile(path, speciesList, rxnList, verbose = False, checkForDuplicates=False) # We should already have marked everything as duplicates by now        
+        logging.info('Saving current model to verbose Chemkin file...')
         saveChemkinFile(verbose_path, speciesList, rxnList, verbose = True, checkForDuplicates=False)
         if dictionaryPath:
             saveSpeciesDictionary(dictionaryPath, speciesList)
         if transportPath:
             saveTransportFile(transportPath, speciesList)
+            
+    
