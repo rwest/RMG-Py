@@ -301,10 +301,10 @@ class RMG:
         
         # Do all liquid-phase startup things:
         if self.solvent:
-        	Species.solventData = self.database.solvation.getSolventData(self.solvent)
-        	Species.solventName = self.solvent
-        	diffusionLimiter.enable(Species.solventData, self.database.solvation)
-        	logging.info("Setting solvent data for {0}".format(self.solvent))
+            Species.solventData = self.database.solvation.getSolventData(self.solvent)
+            Species.solventName = self.solvent
+            diffusionLimiter.enable(Species.solventData, self.database.solvation)
+            logging.info("Setting solvent data for {0}".format(self.solvent))
     
         # Set wall time
         if args.walltime == '0': 
@@ -360,7 +360,15 @@ class RMG:
         Execute an RMG job using the command-line arguments `args` as returned
         by the :mod:`argparse` package.
         """
-    
+        if args.memoryprofile:
+            import pympler
+            import pympler.classtracker
+            import pympler.classtracker_stats
+            tracker = pympler.classtracker.ClassTracker()
+            #tracker.track_class(Reaction) # we can't track Cythonized classes :-(
+            tracker.track_class(Species)
+            tracker.track_class(CoreEdgeReactionModel) # resolution_level=1
+
         self.initialize(args)
         
         # RMG execution statistics
@@ -451,6 +459,13 @@ class RMG:
             days = (elapsed - seconds - minutes * 60 - hours * 3600) / (3600 * 24)
             logging.info('    Execution time (DD:HH:MM:SS): '
                 '{0:02}:{1:02}:{2:02}:{3:02}'.format(int(days), int(hours), int(minutes), int(seconds)))
+            
+            if args.memoryprofile:
+                tracker.create_snapshot('{0} core {1} edge species {2:.0f} seconds'.format(coreSpec, edgeSpec, elapsed))
+                tracker.stats.dump_stats('memory_profile.dat')
+                tracker.stats.print_stats
+                logging.info('Saving memory profile HTML...')
+                pympler.classtracker_stats.HtmlStats(tracker=tracker).create_html('memory_profile.html')
             try:
                 import psutil
                 process = psutil.Process(os.getpid())
@@ -1150,3 +1165,8 @@ def makeProfileGraph(stats_file):
         logging.info("Graph of profile statistics saved to: \n {0}.pdf".format(dot_file))
     # we could actually try this here using subprocess.Popen() or something
     # wrapped in a try: block.
+
+def processMemoryProfile():
+    from pympler.classtracker_stats import HtmlStats
+    stats = HtmlStats(filename='memory_profile.dat')
+    stats.create_html('memory_profile.html')

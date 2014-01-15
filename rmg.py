@@ -80,7 +80,7 @@ def parseCommandLineArguments():
 
     parser.add_argument('-p', '--profile', action='store_true', help='run under cProfile to gather profiling statistics, and postprocess them if job completes')
     parser.add_argument('-P', '--postprocess', action='store_true', help='postprocess profiling statistics from previous [failed] run; does not run the simulation')
-
+    parser.add_argument('-m', '--memoryprofile', action='store_true', help='run with memory profiling')
     parser.add_argument('-t', '--walltime', type=str, nargs=1, default='0',
         metavar='HH:MM:SS', help='set the maximum execution time')
 
