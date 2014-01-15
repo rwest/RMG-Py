@@ -362,11 +362,8 @@ class RMG:
         """
         if args.memoryprofile:
             import pympler
-            import pympler.tracker
             import pympler.classtracker
             import pympler.classtracker_stats
-            summary = pympler.tracker.SummaryTracker()
-            summary.print_diff()
             tracker = pympler.classtracker.ClassTracker()
             #tracker.track_class(Reaction) # we can't track Cythonized classes :-(
             tracker.track_class(Species)
@@ -464,8 +461,6 @@ class RMG:
                 '{0:02}:{1:02}:{2:02}:{3:02}'.format(int(days), int(hours), int(minutes), int(seconds)))
             
             if args.memoryprofile:
-                logging.info("Generating memory diff since last iteration...")
-                summary.print_diff()
                 tracker.create_snapshot('{0} core {1} edge species {2:.0f} seconds'.format(coreSpec, edgeSpec, elapsed))
                 tracker.stats.dump_stats('memory_profile.dat')
                 tracker.stats.print_stats
