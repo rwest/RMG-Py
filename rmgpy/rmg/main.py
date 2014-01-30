@@ -362,12 +362,16 @@ class RMG:
         """
         if args.memoryprofile:
             import pympler
-            import pympler.classtracker
-            import pympler.classtracker_stats
+            import pympler.classtracker, pympler.classtracker_stats, pympler.web
             tracker = pympler.classtracker.ClassTracker()
             #tracker.track_class(Reaction) # we can't track Cythonized classes :-(
             tracker.track_class(Species)
             tracker.track_class(CoreEdgeReactionModel) # resolution_level=1
+            
+            pympler.web.start_in_background(host='localhost', port=8090, tracker=tracker)
+            import webbrowser
+            webbrowser.open("http://localhost:8090/")
+            
 
         self.initialize(args)
         
