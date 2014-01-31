@@ -48,7 +48,7 @@ class Mopac(logfileparser.Logfile):
         if line.find("Empirical Formula:") > -1:
 
             self.updateprogress(inputfile, "Attributes", self.fupdate)
-            #locate the component that beg        
+            #locate the component that beg
             natom = int(line.split()[-2]) #second to last component should be number of atoms (last element is "atoms" (or possibly "atom"?))
             if hasattr(self, "natom"):
                 assert self.natom == natom
@@ -59,7 +59,7 @@ class Mopac(logfileparser.Logfile):
         # note that cartesian coordinates section occurs multiple times in the file, and we want to end up using the last instance
         # also, note that the section labeled cartesian coordinates doesn't have as many decimal places as the one used here
         # Example 1 (not used):
-#          CARTESIAN COORDINATES 
+#          CARTESIAN COORDINATES
 #
 #    NO.       ATOM               X         Y         Z
 #
@@ -85,7 +85,7 @@ class Mopac(logfileparser.Logfile):
          # Example 2 (used):
 #   ATOM   CHEMICAL          X               Y               Z
 #  NUMBER    SYMBOL      (ANGSTROMS)     (ANGSTROMS)     (ANGSTROMS)
-# 
+#
 #     1       O          4.79280259  *  -0.84610232  *   0.36409474  *
 #     2       O          5.89768035  *  -0.31706418  *   0.00917035  *
 #     3       C          3.86164836  *   0.06535206  *   0.86290800  *
@@ -137,7 +137,7 @@ class Mopac(logfileparser.Logfile):
             atomcoords = []
             line = inputfile.next()
            # while line != blankline:
-            while len(line.split()) > 0:
+            while len(line.split()) > 6: # MOPAC Version 14.019L 64BITS suddenly appends this block with  "CARTESIAN COORDINATES" block with no blank line.
                 broken = line.split()
                 self.inputatoms.append(symbol2int(broken[1]))
                 xc = float(broken[2])
@@ -179,10 +179,10 @@ class Mopac(logfileparser.Logfile):
                 self.rotcons = []
             broken = rotinfo.split()
             sol = 29.9792458 #speed of light in vacuum in 10^9 cm/s, cf. http://physics.nist.gov/cgi-bin/cuu/Value?c|search_for=universal_in!
-            a = float(broken[2])*sol 
+            a = float(broken[2])*sol
             b = float(broken[5])*sol
             c = float(broken[8])*sol
-            self.rotcons.append([a, b, c]) 
+            self.rotcons.append([a, b, c])
 
         # Start of the IR/Raman frequency section.
 #Example:
