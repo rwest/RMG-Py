@@ -278,5 +278,30 @@ class TestTransportDatabase(unittest.TestCase):
         transportData, blank, blank2 = self.transportdb.getTransportPropertiesViaGroupEstimates(species)
         self.assertIsNotNone(transportData)
 
+    def testJobackOnStrangeMolecule(self):
+        "Test Joback doesn't crash on strange C8O2 molecule"
+        adjlist = """
+                    1  C 0 {3,S} {4,S} {5,S} {9,S}
+                    2  C 0 {6,D} {7,S} {8,S}
+                    3  C 0 {1,S} {6,S} {10,D}
+                    4  C 0 {1,S} {7,S} {11,S}
+                    5  C 0 {1,S} {8,D} {12,S}
+                    6  C 0 {2,D} {3,S} {13,S}
+                    7  C 0 {2,S} {4,S} {14,S}
+                    8  C 0 {2,S} {5,D} {15,S}
+                    9  O 0 {1,S} {16,S}
+                    10 O 0 {3,D}
+                    11 H 0 {4,S}
+                    12 H 0 {5,S}
+                    13 H 0 {6,S}
+                    14 H 0 {7,S}
+                    15 H 0 {8,S}
+                    16 H 0 {9,S}
+                    """
+        m = Molecule().fromAdjacencyList(adjlist)
+        species = Species(molecule=[m])
+        transportData, blank, blank2 = self.transportdb.getTransportPropertiesViaGroupEstimates(species)
+        self.assertIsNotNone(transportData)
+        
 if __name__ == '__main__':
     unittest.main(testRunner=unittest.TextTestRunner(verbosity=2))
