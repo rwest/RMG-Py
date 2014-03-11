@@ -435,7 +435,8 @@ class TransportDatabase(object):
                         else:
                             self.__addCriticalPointContribution(groupData, self.groups['nonring'], molecule, {'*':atom})                      
                     except KeyError:
-                        logging.error("Couldn't find in any transport database:")
+                        atom.label = "*"
+                        logging.error("Error finding transport group for atom marked with a * below:")
                         logging.error(molecule)
                         logging.error(molecule.toAdjacencyList())
                         raise
