@@ -944,6 +944,27 @@ class TestMolecule(unittest.TestCase):
         """
         self.assertEqual(Molecule().fromSMILES('CC#CC').countInternalRotors(), 1)
 
+    def testDetectInvalidValency(self):
+        """
+        Test that we can detect a broken molecule that doesn't make sense.
+        """
+        # Make an invalid molecule by starting with radicals...
+        mol = Molecule().fromAdjacencyList("""
+            1     C     1 {2,S}
+            2     C     1 {1,S} {3,S}
+            3     C     0 {2,S}
+        """)
+        self.assertTrue( mol.isValidMolecule(), "C3H6 molecule with two radical sites should be valid but wasn't")
+        # ...then removing the radical sites
+        for atom in mol.atoms:
+            while atom.radicalElectrons:
+                atom.decrementRadical()
+        rdmol = mol.toRDKitMol(removeHs=False)
+        self.assertEqual(len(mol.atoms), rdmol.GetNumAtoms(), "RDMol and starting molecule have different numbers of atoms?")
+        self.assertFalse( mol.isValidMolecule(), "C3H6 molecule with no radical sites and all single bonds shouldn't be valid but is.")
+        
+        
+
 ################################################################################
 
 if __name__ == '__main__':

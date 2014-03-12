@@ -193,3 +193,5 @@ cdef class Molecule(Graph):
     cpdef findAllDelocalizationPaths(self, Atom atom1)
 
     cpdef int calculateSymmetryNumber(self) except -1
+    
+    cpdef bint isValidMolecule(self) except -2

@@ -1445,3 +1445,24 @@ class Molecule(Graph):
                 radicalAtomsList.append(atom)
         return radicalAtomsList
     
+    def isValidMolecule(self):
+        """
+        Return True if the valence of all atoms is satisfied and the molecule makes sense, else False
+        """
+        cython.declare(atom=Atom,valences=dict,orders=dict,valence=int,radical=int,atom2=Atom,bond=Bond,order=float)
+        # these are copies from adjlist.py. They should be defined somewhere separately and imported into both places
+        # However, I am not implementing this now, because this code changes with the new adjacency list syntax and 
+        # will make merging branches harder if I change it now. (NB> this will need fixing with penta-valent Nitrogen)
+        valences = {'H': 1, 'C': 4, 'O': 2, 'N': 3, 'S': 2, 'Si': 4, 'He': 0, 'Ne': 0, 'Ar': 0, 'Cl': 1}
+        orders = {'S': 1, 'D': 2, 'T': 3, 'B': 1.5}
+        for atom in self.atoms:
+            valence = valences[atom.symbol]
+            radical = atom.radicalElectrons
+            order = 0
+            for atom2, bond in atom.bonds.items():
+                order += orders[bond.order]
+            count = valence - radical - int(order)
+            if count != 0:
+                return False
+        return True
+    
