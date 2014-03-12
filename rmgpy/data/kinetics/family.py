@@ -1129,6 +1129,15 @@ class KineticsFamily(Database):
         for struct in productStructures:
             struct.updateAtomTypes()
             if self.isMoleculeForbidden(struct): raise ForbiddenStructureException()
+            
+            if not struct.isValidMolecule():
+                # This check should not be necessary. You only reach here in the case of a bug, probably in the reaction recipe.
+                logging.error('Molecule Validity Test failed on structure:\n{0}'.format(struct.toAdjacencyList()))
+                logging.error('Reaction family is {0} in {1} direction'.format(self.label, 'forward' if forward else 'reverse'))
+                logging.error('Reactant structures are:')
+                for r in reactantStructures:
+                    logging.error(r.toAdjacencyList())
+                raise KineticsError("Generated invalid molecule (see log file)")
 
         return productStructures
 
