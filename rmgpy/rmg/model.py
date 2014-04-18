@@ -603,15 +603,15 @@ class CoreEdgeReactionModel:
         Generates reactions involving :class:`rmgpy.species.Species` speciesA and speciesB.
         """
         reactionList = []
-        options = self.speciesConstraints
+        enforceSpeciesConstraints = self.enforceSpeciesConstraints
         if speciesB is None:
             for moleculeA in speciesA.molecule:
-                reactionList.extend(database.kinetics.generateReactions([moleculeA], **options))
+                reactionList.extend(database.kinetics.generateReactions([moleculeA], enforceSpeciesConstraints))
                 moleculeA.clearLabeledAtoms()
         else:
             for moleculeA in speciesA.molecule:
                 for moleculeB in speciesB.molecule:
-                    reactionList.extend(database.kinetics.generateReactions([moleculeA, moleculeB], **options))
+                    reactionList.extend(database.kinetics.generateReactions([moleculeA, moleculeB], enforceSpeciesConstraints))
                     moleculeA.clearLabeledAtoms()
                     moleculeB.clearLabeledAtoms()
         return reactionList
@@ -1359,7 +1359,7 @@ class CoreEdgeReactionModel:
                     self.speciesConstraints['explicitlyAllowedMolecules'].extend(spec.molecule)
                 else:
                     raise ForbiddenStructureException("Species constraints forbids species {0} from reaction library {1}. Please reformulate constraints, remove the species, or explicitly allow it.".format(spec.label, reactionLibrary.label))
-       
+
         for spec in self.newSpeciesList:
             if spec.reactive: spec.generateThermoData(database, quantumMechanics=self.quantumMechanics)
             spec.generateTransportData(database)
@@ -1703,13 +1703,21 @@ class CoreEdgeReactionModel:
             saveChemkinFile(verbose_path, speciesList, rxnList, verbose = True, checkForDuplicates=False)
             if dictionaryPath:
                 saveSpeciesDictionary(dictionaryPath, speciesList)
-                
+        
+    def enforceSpeciesConstraints(self, structure):
+        """
+        Raises a `ForbiddenStructureException` if the :class:`Molecule` structure
+        does not pass the user-defined species constraints.
+        """
+        if self.failsSpeciesConstraints(structure):
+            raise ForbiddenStructureException
+        
     def failsSpeciesConstraints(self, species):
         """
         Checks whether the species passes the speciesConstraints set by the user.  If not,
         returns `True` for failing speciesConstraints.
         """
-        explicitlyAllowedMolecules = self.speciesConstraints.get('explicitlyAllowedMolecules')
+        explicitlyAllowedMolecules = self.speciesConstraints.get('explicitlyAllowedMolecules', [])
         maxCarbonAtoms = self.speciesConstraints.get('maximumCarbonAtoms', 1000000)
         maxHydrogenAtoms = self.speciesConstraints.get('maximumHydrogenAtoms', 1000000)
         maxOxygenAtoms = self.speciesConstraints.get('maximumOxygenAtoms', 1000000)
@@ -1719,7 +1727,10 @@ class CoreEdgeReactionModel:
         maxHeavyAtoms = self.speciesConstraints.get('maximumHeavyAtoms', 1000000)
         maxRadicals = self.speciesConstraints.get('maximumRadicalElectrons', 1000000)
         
-        struct = species.molecule[0]
+        if isinstance(species, rmgpy.species.Species):
+            struct = species.molecule[0]
+        else:
+            struct = species
         for molecule in explicitlyAllowedMolecules:
             if struct.isIsomorphic(molecule):
                 return False        

@@ -1078,7 +1078,7 @@ class KineticsFamily(Database):
         # Return the product structures
         return productStructures
 
-    def __generateProductStructures(self, reactantStructures, maps, forward, **options):
+    def __generateProductStructures(self, reactantStructures, maps, forward, enforceSpeciesConstraints=None):
         """
         For a given set of `reactantStructures` and a given set of `maps`,
         generate and return the corresponding product structures. The
@@ -1087,6 +1087,8 @@ class KineticsFamily(Database):
         parameter is a list of mappings of the top-level tree node of each
         *template* reactant to the corresponding *structure*. This function
         returns a list of the product structures.
+        `enforceSpeciesConstraints` is a function that accepts a :class:`Molecule`
+        structure and raises a `ForbiddenStructureException` if it is forbidden.
         """
         
         productStructuresList = []
@@ -1125,41 +1127,10 @@ class KineticsFamily(Database):
                 productStructures.reverse()
 
         # Apply the generated species constraints (if given)
-        if options:
-            explicitlyAllowedMolecules = options.get('explicitlyAllowedMolecules')
-            maxCarbonAtoms = options.get('maximumCarbonAtoms', 1000000)
-            maxHydrogenAtoms = options.get('maximumHydrogenAtoms', 1000000)
-            maxOxygenAtoms = options.get('maximumOxygenAtoms', 1000000)
-            maxNitrogenAtoms = options.get('maximumNitrogenAtoms', 1000000)
-            maxSiliconAtoms = options.get('maximumSiliconAtoms', 1000000)
-            maxSulfurAtoms = options.get('maximumSulfurAtoms', 1000000)
-            maxHeavyAtoms = options.get('maximumHeavyAtoms', 1000000)
-            maxRadicals = options.get('maximumRadicalElectrons', 1000000)
+        if enforceSpeciesConstraints:
             for struct in productStructures:
-                allowed = False
-                for molecule in explicitlyAllowedMolecules:
-                    if struct.isIsomorphic(molecule):                        
-                        allowed = True
-                        break
-                if allowed:
-                    continue
-                H = struct.getNumAtoms('H')
-                if struct.getNumAtoms('C') > maxCarbonAtoms:
-                    raise ForbiddenStructureException()
-                if H > maxHydrogenAtoms:
-                    raise ForbiddenStructureException()
-                if struct.getNumAtoms('O') > maxOxygenAtoms:
-                    raise ForbiddenStructureException()
-                if struct.getNumAtoms('N') > maxNitrogenAtoms:
-                    raise ForbiddenStructureException()
-                if struct.getNumAtoms('Si') > maxSiliconAtoms:
-                    raise ForbiddenStructureException()
-                if struct.getNumAtoms('S') > maxSulfurAtoms:
-                    raise ForbiddenStructureException()
-                if len(struct.atoms) - H > maxHeavyAtoms:
-                    raise ForbiddenStructureException()
-                if (struct.getNumberOfRadicalElectrons() > maxRadicals) and (len(struct.atoms) - H > 1):
-                    raise ForbiddenStructureException()
+                enforceSpeciesConstraints(struct) # raises ForbiddenStructureException() if it fails to meet constraints
+
         
         # Generate other possible electronic states
         electronicStructuresList1 = []
@@ -1397,7 +1368,7 @@ class KineticsFamily(Database):
         elif isinstance(struct, Group):
             return reactant.findSubgraphIsomorphisms(struct)
 
-    def generateReactions(self, reactants, **options):
+    def generateReactions(self, reactants, enforceSpeciesConstraints=None):
         """
         Generate all reactions between the provided list of one or two
         `reactants`, which should be either single :class:`Molecule` objects
@@ -1410,12 +1381,12 @@ class KineticsFamily(Database):
         reactionList = []
         
         # Forward direction (the direction in which kinetics is defined)
-        reactionList.extend(self.__generateReactions(reactants, forward=True, **options))
+        reactionList.extend(self.__generateReactions(reactants, forward=True, enforceSpeciesConstraints=enforceSpeciesConstraints))
         
         if self.ownReverse:
             # for each reaction, make its reverse reaction and store in a 'reverse' attribute
             for rxn in reactionList:
-                reactions = self.__generateReactions(rxn.products, products=rxn.reactants, forward=True, **options)
+                reactions = self.__generateReactions(rxn.products, products=rxn.reactants, forward=True, enforceSpeciesConstraints=enforceSpeciesConstraints)
                 if len(reactions) != 1:
                     logging.error("Expecting one matching reverse reaction, not {0} in reaction family {1} for forward reaction {2}.\n".format(len(reactions), self.label, str(rxn)))
                     for reactant in rxn.reactants:
@@ -1429,7 +1400,7 @@ class KineticsFamily(Database):
             
         else: # family is not ownReverse
             # Reverse direction (the direction in which kinetics is not defined)
-            reactionList.extend(self.__generateReactions(reactants, forward=False, **options))
+            reactionList.extend(self.__generateReactions(reactants, forward=False, enforceSpeciesConstraints=enforceSpeciesConstraints))
             
         # Return the reactions as containing Species objects, not Molecule objects
         for reaction in reactionList:
@@ -1458,7 +1429,7 @@ class KineticsFamily(Database):
             raise Exception('Unable to calculate degeneracy for reaction {0} in reaction family {1}.'.format(reaction, self.label))
         return reactions[0].degeneracy
         
-    def __generateReactions(self, reactants, products=None, forward=True, **options):
+    def __generateReactions(self, reactants, products=None, forward=True, enforceSpeciesConstraints=None):
         """
         Generate a list of all of the possible reactions of this family between
         the list of `reactants`. The number of reactants provided must match
@@ -1466,6 +1437,8 @@ class KineticsFamily(Database):
         will return an empty list. Each item in the list of reactants should
         be a list of :class:`Molecule` objects, each representing a resonance
         isomer of the species of interest.
+        `enforceSpeciesConstraints` is an optional function that accepts a :class:`Molecule`
+        structure and raises a `ForbiddenStructureException` if it is forbidden.
         """
 
         rxnList = []; speciesList = []
@@ -1501,7 +1474,7 @@ class KineticsFamily(Database):
                 for map in mappings:
                     reactantStructures = [molecule]
                     try:
-                        productStructuresList = self.__generateProductStructures(reactantStructures, [map], forward, **options)
+                        productStructuresList = self.__generateProductStructures(reactantStructures, [map], forward, enforceSpeciesConstraints)
                     except ForbiddenStructureException:
                         pass
                     else:
@@ -1529,7 +1502,7 @@ class KineticsFamily(Database):
                         for mapB in mappingsB:
                             reactantStructures = [moleculeA, moleculeB]
                             try:
-                                productStructuresList = self.__generateProductStructures(reactantStructures, [mapA, mapB], forward, **options)
+                                productStructuresList = self.__generateProductStructures(reactantStructures, [mapA, mapB], forward, enforceSpeciesConstraints)
                             except ForbiddenStructureException:
                                 pass
                             else:
@@ -1550,7 +1523,7 @@ class KineticsFamily(Database):
                             for mapB in mappingsB:
                                 reactantStructures = [moleculeA, moleculeB]
                                 try:
-                                    productStructuresList = self.__generateProductStructures(reactantStructures, [mapA, mapB], forward, **options)
+                                    productStructuresList = self.__generateProductStructures(reactantStructures, [mapA, mapB], forward, enforceSpeciesConstraints)
                                 except ForbiddenStructureException:
                                     pass
                                 else:
