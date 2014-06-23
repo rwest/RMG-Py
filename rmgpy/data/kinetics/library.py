@@ -257,6 +257,8 @@ class KineticsLibrary(Database):
                   index,
                   label,
                   kinetics,
+                  product4=None,
+                  product5=None,
                   degeneracy=1,
                   duplicate=False,
                   reversible=True,
