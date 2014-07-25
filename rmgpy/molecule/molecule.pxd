@@ -183,7 +183,7 @@ cdef class Molecule(Graph):
 
     cpdef str toSMILES(self)
 
-#    cpdef tRDKitMol(self)
+    cpdef toRDKitMol(self, bint removeHs=?, bint returnMapping=?)
 
     cpdef toAdjacencyList(self, str label=?, bint removeH=?, bint removeLonePairs=?)
 
