@@ -167,7 +167,7 @@ cdef class Molecule(Graph):
 
     cpdef fromSMILES(self, str smilesstr)
 
-    cpdef fromRDKitMol(self, rdkitmol)
+    cpdef fromRDKitMol(self, rdkitmol, bint kekulize=?)
 
     cpdef fromAdjacencyList(self, str adjlist, bint saturateH=?)
 

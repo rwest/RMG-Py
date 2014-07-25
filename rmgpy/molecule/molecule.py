@@ -1122,11 +1122,12 @@ class Molecule(Graph):
         self.fromRDKitMol(rdkitmol)
         return self
         
-    def fromRDKitMol(self, rdkitmol):
+    def fromRDKitMol(self, rdkitmol, kekulize=True):
         """
         Convert a RDKit Mol object `rdkitmol` to a molecular structure. Uses
         `RDKit <http://rdkit.org/>`_ to perform the conversion.
-        This Kekulizes everything, removing all aromatic atom types.
+        This Kekulizes everything, removing all aromatic atom types,
+        unless kekulize=False is passed as a keyword argument.
         """
         # Below are the declared variables for cythonizing the module
         cython.declare(i=cython.int)
@@ -1137,7 +1138,8 @@ class Molecule(Graph):
         
         # Add hydrogen atoms to complete molecule if needed
         rdkitmol = Chem.AddHs(rdkitmol)
-        Chem.rdmolops.Kekulize(rdkitmol, clearAromaticFlags=True)
+        if kekulize:
+            Chem.rdmolops.Kekulize(rdkitmol, clearAromaticFlags=True)
         
         # iterate though atoms in rdkitmol
         for i in range(rdkitmol.GetNumAtoms()):
