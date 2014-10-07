@@ -182,6 +182,36 @@ class TestAtom(unittest.TestCase):
             self.assertEqual(atom0.charge, atom.charge)
             self.assertEqual(atom0.label, atom.label)
     
+    def testApplyActionGainPair(self):
+        """
+        Test the Atom.applyAction() method for a GAIN_PAIR action.
+        """
+        action = ['GAIN_PAIR', '*1', 1]
+        for element in ["N", "O", "Si"]:
+            atom0 = Atom(element=element, radicalElectrons=0, charge=0, label='*1', lonePairs=0)
+            atom = atom0.copy()
+            atom.applyAction(action)
+            self.assertEqual(atom0.element, atom.element)
+            self.assertEqual(atom0.radicalElectrons, atom.radicalElectrons)
+            self.assertEqual(atom0.label, atom.label)
+	    self.assertEqual(atom0.lonePairs, atom.lonePairs - 1)
+	    self.assertFalse(atom0.isSpecificCaseOf(atom))
+ 
+    def testApplyActionLosePair(self):
+        """
+        Test the Atom.applyAction() method for a LOSE_PAIR action.
+        """
+        action = ['LOSE_PAIR', '*1', 1]
+        for element in ["N", "O", "Si"]:
+            atom0 = Atom(element=element, radicalElectrons=0, charge=0, label='*1', lonePairs=1)
+            atom = atom0.copy()
+            atom.applyAction(action)
+            self.assertEqual(atom0.element, atom.element)
+            self.assertEqual(atom0.radicalElectrons, atom.radicalElectrons)
+            self.assertEqual(atom0.label, atom.label)
+	    self.assertEqual(atom0.lonePairs, atom.lonePairs + 1)
+	    self.assertFalse(atom0.isSpecificCaseOf(atom))
+
     def testEquivalent(self):
         """
         Test the Atom.equivalent() method.
