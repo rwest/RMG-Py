@@ -244,6 +244,39 @@ class TestIsomorphism(unittest.TestCase):
             calc = len(mol1.findSubgraphIsomorphisms(group1)) > 0
             assert_equal(calc, exp, err)
             
+    
+    def testLonePairGraphIsomorphism(self):
+	'''
+	Silane should not match a silylene group.
+	'''
+	
+	mol = Molecule().fromAdjacencyList("""
+	1 Si u0 p0 c0 {2,S} {3,S} {4,S} {5,S}
+	2 H u0 p0 c0 {1,S}
+	3 H u0 p0 c0 {1,S}
+	4 H u0 p0 c0 {1,S}
+	5 Si u0 p0 c0 {1,S} {6,S} {7,S} {8,S}
+	6 H u0 p0 c0 {5,S}
+	7 H u0 p0 c0 {5,S}
+	8 H u0 p0 c0 {5,S}
+	""")
+
+	mol2 = Molecule().fromAdjacencyList("""
+	1 Si u0 p1 c0 {2,S}
+	2 Si u0 p0 c0 {1,S}
+	""", saturateH=True)
+	
+
+	silyleneGroup = Group().fromAdjacencyList("""
+	1 Si u0 p1 c0 {2,S} {3,S}
+	2 H u0 p0 c0 {1,S}
+	3 R u0 p0 c0 {1,S}
+	""")
+
+	self.assertFalse(mol.isSubgraphIsomorphic(silyleneGroup))
+	self.assertTrue(mol2.isSubgraphIsomorphic(silyleneGroup))
+
+		
     def testMultiplicity_mol_mol_distinct_multiplicity(self):
         '''
         distinct multiplicity for both molecules set by user.
@@ -323,4 +356,21 @@ class TestIsomorphism(unittest.TestCase):
         """)
         
         self.assertTrue(len(mol.findSubgraphIsomorphisms(gp)) > 0)
-    
+
+    def test_isomorphism_silylene(self):
+	silane = Molecule().fromAdjacencyList("""
+	1 Si u0 p0 c0
+	""", saturateH = True)
+
+	silylene = Molecule().fromAdjacencyList("""
+	1 Si u0 p1 c0
+	""", saturateH = True)
+
+	group = Group().fromAdjacencyList("""
+	1 Si u0 p1 c0 {2,S} {3,S}
+	2 H u0 p0 c0 {1,S}
+	3 R u0 p0 c0 {1,S}
+	""")
+	
+	self.assertTrue(len(silane.findSubgraphIsomorphisms(group)) == 0) 
+	self.assertTrue(len(silylene.findSubgraphIsomorphisms(group)) > 0)
