@@ -1122,7 +1122,7 @@ class ThermoDatabase(object):
         # library, in which case we need to fall up the tree until we find an
         # ancestor that has an entry in the library
         node = node0
-        while node.data is None and node is not None:
+        while node.data is None:
             node = node.parent
         if node is None:
             raise DatabaseError('Unable to determine thermo parameters for {0}: no library entries for {1} or any of its ancestors.'.format(molecule, node0) )
