@@ -9,7 +9,7 @@ The instructions listed below have been confirmed on a fresh Ubuntu 12.04 instal
 
 * Install compilers and libraries: ::
 
-	sudo apt-get install git g++ gfortran python-dev liblapack-dev python-openbabel python-setuptools python-pip
+	sudo apt-get install git g++ gfortran python-dev liblapack-dev python-openbabel python-setuptools python-pip 
 
 * After creating a `Github account <https://github.com/signup/free>`_, generate your public key: ::
 
@@ -21,9 +21,11 @@ The instructions listed below have been confirmed on a fresh Ubuntu 12.04 instal
 
 * Install dependencies: ::
 
+	sudo apt-get install libpng-dev libfreetype6-dev graphviz mencoder
+	
 	sudo pip install numpy		# install NumPy before other packages
 	
-	sudo pip install scipy cython nose matplotlib quantities guppy sphinx psutil xlwt freetype2 libpng-dev
+	sudo pip install scipy cython nose matplotlib quantities guppy sphinx psutil xlwt 
 	
 	cd ~
 	git clone https://github.com/GreenGroup/PyDAS.git
@@ -78,3 +80,22 @@ The instructions listed below have been confirmed on a fresh Ubuntu 12.04 instal
 	make test
 	make eg1
 	make eg2
+
+.. _compile_sensitivity:
+
+* Compiling RMG-Py with Sensitivity Analysis: ::
+
+  Running sensitivity analysis in RMG-Py requires the prerequisite DASPK solver and DASPK compiled wrapper in PyDAS.  
+  To do so first compile daspk in PyDAS and agree to download the daspk31.tgz file when prompted. ::
+
+    cd PyDAS/
+    make
+    make install
+
+  Then compile RMG-Py normally.  It will automatically be compiled with sensitivity analysis if DASPK is found. ::
+
+    cd RMG-Py
+    make clean-solver
+    make
+    
+  Note that using this option will allow RMG to both run with and without sensitivity.  

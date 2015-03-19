@@ -181,7 +181,7 @@ cdef class Arrhenius(KineticsModel):
         
         return self
 
-    cpdef bint isIdenticalTo(self, KineticsModel otherKinetics) except -1:
+    cpdef bint isIdenticalTo(self, KineticsModel otherKinetics) except -2:
         """
         Returns ``True`` if kinetics matches that of another kinetics model.  Must match temperature
         and pressure range of kinetics model, as well as parameters: A, n, Ea, T0. (Shouldn't have pressure
@@ -295,7 +295,7 @@ cdef class ArrheniusEP(KineticsModel):
         n = self._n.value_si
         return A * T**n * exp(-Ea / (constants.R * T))
 
-    cpdef double getActivationEnergy(self, double dHrxn):
+    cpdef double getActivationEnergy(self, double dHrxn) except -1:
         """
         Return the activation energy in J/mol corresponding to the given
         enthalpy of reaction `dHrxn` in J/mol.
@@ -324,7 +324,7 @@ cdef class ArrheniusEP(KineticsModel):
             comment = self.comment,
         )
 
-    cpdef bint isIdenticalTo(self, KineticsModel otherKinetics) except -1:
+    cpdef bint isIdenticalTo(self, KineticsModel otherKinetics) except -2:
         """
         Returns ``True`` if kinetics matches that of another kinetics model.  Must match temperature
         and pressure range of kinetics model, as well as parameters: A, n, Ea, T0. (Shouldn't have pressure
@@ -408,7 +408,6 @@ cdef class PDepArrhenius(PDepKineticsModel):
         Returns the pressures and Arrhenius expressions for the pressures that
         most closely bound the specified pressure `P` in Pa.
         """
-        cdef Arrhenius arrh
         cdef numpy.ndarray[numpy.float64_t,ndim=1] pressures
         cdef int i, ilow, ihigh
         
@@ -428,7 +427,7 @@ cdef class PDepArrhenius(PDepKineticsModel):
         mol, and s at temperature `T` in K and pressure `P` in Pa.
         """
         cdef double Plow, Phigh, klow, khigh, k
-        cdef Arrhenius alow, ahigh
+        cdef KineticsModel alow, ahigh
         cdef int j
         
         if P == 0:
@@ -650,7 +649,7 @@ cdef class MultiPDepArrhenius(PDepKineticsModel):
         """
         cdef double k, klow, khigh, Plow, Phigh
         cdef PDepArrhenius arrh
-        cdef Arrhenius arrh_low, arrh_high
+        cdef KineticsModel arrh_low, arrh_high
         cdef numpy.ndarray Plist1, Plist2
         cdef int i
         

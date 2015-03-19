@@ -40,12 +40,19 @@ import numpy
 import logging
 
 import rmgpy.constants as constants
+
 from rmgpy.cantherm.output import prettify
 from rmgpy.cantherm.gaussian import GaussianLog
 from rmgpy.cantherm.molepro import MoleProLog 
 from rmgpy.cantherm.qchem import QchemLog 
+
 from rmgpy.species import TransitionState
-from rmgpy.statmech import *
+
+from rmgpy.statmech.translation import Translation, IdealGasTranslation
+from rmgpy.statmech.rotation import Rotation, LinearRotor, NonlinearRotor, KRotor, SphericalTopRotor
+from rmgpy.statmech.vibration import Vibration, HarmonicOscillator
+from rmgpy.statmech.torsion import Torsion, HinderedRotor
+from rmgpy.statmech.conformer import Conformer
 
 ################################################################################
 
@@ -423,7 +430,7 @@ class StatMechJob:
         logging.info('Saving statistical mechanics parameters for {0}...'.format(self.species.label))
         f = open(outputFile, 'a')
     
-        numbers = {1: 'H', 6: 'C', 7: 'N', 8: 'O', 14: 'Si', 15: 'P', 16: 'S'}
+        numbers = {1: 'H', 6: 'C', 7: 'N', 8: 'O', 14: 'Si', 15: 'P', 16: 'S', 17: 'Cl'}
         
         conformer = self.species.conformer
             

@@ -36,21 +36,16 @@ functional groups.
 
 import os.path
 import re
-import logging
 import codecs
 import math
-from copy import copy, deepcopy
+from copy import  deepcopy
 
-from rmgpy.data.base import Database, Entry, DatabaseError, makeLogicNode, getAllCombinations
+from rmgpy.data.base import Database, Entry, DatabaseError, getAllCombinations
 
 from rmgpy.quantity import Quantity, ScalarQuantity
-from rmgpy.reaction import Reaction, ReactionError
-from rmgpy.kinetics import Arrhenius, ArrheniusEP, ThirdBody, Lindemann, Troe, \
-                           PDepArrhenius, MultiArrhenius, MultiPDepArrhenius, \
-                           Chebyshev, KineticsData, PDepKineticsModel
-from rmgpy.molecule import Bond, GroupBond, Group
-from rmgpy.species import Species
-from .common import KineticsError, UndeterminableKineticsError, saveEntry, \
+from rmgpy.reaction import Reaction
+from rmgpy.kinetics import ArrheniusEP
+from .common import KineticsError, saveEntry, \
     BIMOLECULAR_KINETICS_FAMILIES, UNIMOLECULAR_KINETICS_FAMILIES
 
 ################################################################################
@@ -505,6 +500,8 @@ class KineticsRules(Database):
             # Get string format of the template in the form "(leaf1,leaf2)"
             return '({0})'.format(','.join([g.label for g in template]))
     
+        
+        originalLeaves = getTemplateLabel(template)
         templateList = [template]
         while len(templateList) > 0:
             
@@ -516,7 +513,6 @@ class KineticsRules(Database):
                 kineticsList.append([kinetics, t])
             
             if len(kineticsList) > 0:                 
-                originalLeaves = getTemplateLabel(template)
                                 
                 if len(kineticsList) == 1:
                     kinetics, t = kineticsList[0]

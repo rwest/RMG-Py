@@ -35,15 +35,12 @@ This module contains functionality for working with kinetics libraries.
 import os.path
 import logging
 import codecs
-import re
-from copy import copy, deepcopy
+from copy import deepcopy
 
 from rmgpy.data.base import Database, Entry, LogicNode, LogicOr, ForbiddenStructures,\
-                            ForbiddenStructureException, getAllCombinations, DatabaseError
+                            ForbiddenStructureException, getAllCombinations
 from rmgpy.reaction import Reaction
-from rmgpy.kinetics import Arrhenius, ArrheniusEP, ThirdBody, Lindemann, Troe, \
-                           PDepArrhenius, MultiArrhenius, MultiPDepArrhenius, \
-                           Chebyshev, KineticsData, PDepKineticsModel
+from rmgpy.kinetics import Arrhenius, ArrheniusEP
 from rmgpy.molecule import Bond, GroupBond, Group, Molecule
 from rmgpy.species import Species
 
@@ -935,15 +932,16 @@ class KineticsFamily(Database):
             data.changeT0(1)
             
             # Estimate the thermo for the reactants and products
+            # trainingSet=True used later to does not allow species to match a liquid phase library and get corrected thermo which will affect reverse rate calculation
             item = Reaction(reactants=[m.molecule[0].copy(deep=True) for m in entry.item.reactants], products=[m.molecule[0].copy(deep=True) for m in entry.item.products])
             item.reactants = [Species(molecule=[m]) for m in item.reactants]
             for reactant in item.reactants:
                 reactant.generateResonanceIsomers()
-                reactant.thermo = thermoDatabase.getThermoData(reactant)
+                reactant.thermo = thermoDatabase.getThermoData(reactant, trainingSet=True) 
             item.products = [Species(molecule=[m]) for m in item.products]
             for product in item.products:
                 product.generateResonanceIsomers()
-                product.thermo = thermoDatabase.getThermoData(product)
+                product.thermo = thermoDatabase.getThermoData(product,trainingSet=True)
             # Now that we have the thermo, we can get the reverse k(T)
             item.kinetics = data
             data = item.generateReverseRateCoefficient()
@@ -998,25 +996,6 @@ class KineticsFamily(Database):
             rootTemplate = self.getRootTemplate()
             alreadyDone = {}
         self.rules.fillRulesByAveragingUp(rootTemplate, alreadyDone)
-            
-    def reactantMatch(self, reactant, templateReactant):
-        """
-        Return ``True`` if the provided reactant matches the provided
-        template reactant and ``False`` if not, along with a complete list of
-        the identified mappings.
-        """
-        mapsList = []
-        if templateReactant.__class__ == list: templateReactant = templateReactant[0]
-        struct = self.dictionary[templateReactant]
-
-        if isinstance(struct, LogicNode):
-            for child_structure in struct.getPossibleStructures(self.dictionary):
-                ismatch, mappings = reactant.findSubgraphIsomorphisms(child_structure)
-                if ismatch:
-                    mapsList.extend(mappings)
-            return len(mapsList) > 0, mapsList
-        elif isinstance(struct, Molecule):
-            return reactant.findSubgraphIsomorphisms(struct)
 
     def applyRecipe(self, reactantStructures, forward=True, unique=True, getTS=False):
         """
@@ -1107,7 +1086,14 @@ class KineticsFamily(Database):
                 if highest>4:
                     for i in range(4,highest+1):
                         atomLabels['*{0:d}'.format(i)].label = '*{0:d}'.format(4+highest-i)
-        
+                        
+            elif label == 'H_shift_cyclopentadiene':
+                # Labels for nodes are swapped
+                atomLabels['*1'].label = '*2'
+                atomLabels['*2'].label = '*1'
+                atomLabels['*3'].label = '*5'
+                atomLabels['*5'].label = '*3'
+
         if not forward: template = self.reverseTemplate
         else:           template = self.forwardTemplate
 
@@ -1199,9 +1185,11 @@ class KineticsFamily(Database):
                 productStructures.reverse()
 
         # Apply the generated species constraints (if given)
-        if failsSpeciesConstraints:
-            for struct in productStructures:
-                if failsSpeciesConstraints(struct) or self.isMoleculeForbidden(struct):
+        for struct in productStructures:
+            if self.isMoleculeForbidden(struct):
+                raise ForbiddenStructureException()
+            if failsSpeciesConstraints:
+                if failsSpeciesConstraints(struct):
                     raise ForbiddenStructureException() 
                 
         return productStructures

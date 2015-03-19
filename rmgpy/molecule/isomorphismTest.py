@@ -6,10 +6,11 @@ from nose.tools import assert_equal, assert_true, assert_false
 import logging
 from rmgpy.molecule.adjlist import PeriodicSystem
 from rmgpy.molecule.atomtype import atomTypes
-from rmgpy.molecule.atomtypedatabase import *
+from rmgpy.molecule.atomtypedatabase import create_atom_types 
   
 import itertools
 import unittest
+from external.wip import work_in_progress
 from rmgpy.molecule.molecule import Molecule
 from rmgpy.molecule.group import Group
 
@@ -343,3 +344,78 @@ def test_isomorphism_R():
     """)
     
     assert_true(len(mol.findSubgraphIsomorphisms(gp)) > 0)
+
+def test_isomorphism_mol_group_not_identical():
+    """
+    Testing multiplicities in mol and group that don't match
+    """
+    mol = Molecule().fromAdjacencyList("""
+    1 C u0 p0 c0
+    """, saturateH=True)
+    
+    gp = Group().fromAdjacencyList("""
+    multiplicity [2]
+    1 R u0 p0 c0
+    """)
+    assert_false(mol.isSubgraphIsomorphic(gp))
+    assert_false(len(mol.findSubgraphIsomorphisms(gp)) > 0)
+
+def test_isomorphism_group_group():
+    """
+    Testing multiplicities in group vs. group 
+    """
+    gp1 = Group().fromAdjacencyList("""
+    1 R u0 p0 c0
+    """)
+    
+    gp2 = Group().fromAdjacencyList("""
+    multiplicity [2]
+    1 R u0 p0 c0
+    """)
+    
+    gp3 = Group().fromAdjacencyList("""
+    1 C u0 p0 c0
+    """)
+    
+    assert_false(gp1.isSubgraphIsomorphic(gp2))
+    assert_false(len(gp1.findSubgraphIsomorphisms(gp2)) > 0)
+
+    assert_true(gp2.isSubgraphIsomorphic(gp1))
+    assert_true(len(gp2.findSubgraphIsomorphisms(gp1)) > 0)
+
+    assert_false(gp2.isIdentical(gp1))
+    
+    assert_true(gp3.isSubgraphIsomorphic(gp1))
+    assert_true(len(gp3.findSubgraphIsomorphisms(gp1)) > 0)
+    assert_false(gp3.isSubgraphIsomorphic(gp2))    
+    assert_false(len(gp3.findSubgraphIsomorphisms(gp2)) > 0)
+
+@work_in_progress
+def test_isomorphism_sulfurGroup_sulfurMolecule():
+    """
+    Test isormophism check of a CS group vs. a sulfur containing molecule
+    """
+    gp1 = Group().fromAdjacencyList("""
+1 S  u0 {2,S} {3,S}
+2 H  u0 {1,S}
+3 C u0 {1,S} {4,D}
+4 S  u0 {3,D}
+""")
+    
+    gp2 = Group().fromAdjacencyList("""
+1 S  u0 {2,S} {3,S}
+2 H  u0 {1,S}
+3 CS u0 {1,S} {4,D}
+4 S  u0 {3,D}
+""")
+    
+    mol = Molecule().fromAdjacencyList("""
+1 S  0 {2,S} {3,S}
+2 H  0 {1,S}
+3 C 0 {1,S} {4,D} {5,S}
+4 S 0 {3,D}
+5 H 0 {3,S}
+""")
+    assert_true(mol.isSubgraphIsomorphic(gp1))
+    
+    assert_true(mol.isSubgraphIsomorphic(gp2))

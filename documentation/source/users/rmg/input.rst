@@ -20,7 +20,7 @@ This section explains how to specify various reaction and thermo data sources in
 .. _thermolibraries:
 
 Thermo Libraries
----------------
+----------------
 
 By default, RMG will calculate the thermodynamic properties of the species from
 Benson additivity formulas. In general, the group-additivity results are
@@ -33,8 +33,11 @@ The order in which the thermo libraries are specified is important:
 If a species appears in multiple thermo libraries, the first instance will
 be used.
 
-Please see Section :ref:`editingthermodatabase` for details on editing the
-thermo library. In general, it is best to leave the ThermoLibrary
+Now in RMG, you have two types of thermo libraries: gas and liquid thermo libraries. As species thermo in liquid phase depends on the solvent,
+those libraries can only be used in liquid phase simulation with the corresponding solvent. Gas phase thermo library can be used either in gas phase simulation or
+in liquid phase simulation. (see more details on the two :ref:`thermo library types <thermoLibraryType>` and :ref:`how to use thermo librairies in liquid phase simulation <useofthermolibrariesliquid>`)
+
+Please see Section :ref:`editing thermo database <thermoDatabase>` for more details. In general, it is best to leave the ThermoLibrary
 set to its default value.  In particular, the thermodynamic properties for H and H2
 must be specified in one of the primary thermo libraries as they cannot be estimated
 by Benson's method.
@@ -50,10 +53,14 @@ This library is located in the
 ThermoLibrary field must be with respect to the :file:`$RMG/RMG-database/input/thermo/libraries`
 directory.
 
+.. note::
+	Checks during the initialization are maid to avoid users to use "liquid thermo librairies" in gas phase simulations or to use 
+	"liquid phase libraries" obtained in another solvent that the one defined in the input file in liquid phase simulations.
+
 .. _reactionlibraries:
 
 Reaction Libraries
------------------
+------------------
 The next section of the :file:`input.py` file specifies which, if any,
 Reaction Libraries should be used. When a reaction library is specified, RMG will first
 use the reaction library to generate all the relevant reactions for the species 
@@ -68,6 +75,8 @@ are to be used in addition to the Glarborg C3 library::
 
 	reactionLibraries = [('Glarborg/C3',False)],
 	 	
+The keyword False/True permits user to append all unused reactions (= kept in the edge) from this library to the chemkin file.
+True means those reactions will be appended.
 
 The reaction libraries are stored in :file:`$RMG-database/input/kinetics/libraries/`
 and the `Location:` should be specified relative to this path.
@@ -90,7 +99,7 @@ given in each mechanism, the different mechanisms can have different units.
 .. _seedmechanism:
 
 Seed Mechanisms
---------------
+---------------
 The next section of the :file:`input.py` file specifies which, if any, 
 Seed Mechanisms should be used.  If a seed mechanism is passed to RMG, every
 species and reaction present in the seed mechanism will be placed into the core, in
@@ -127,7 +136,7 @@ Kinetics Depositories
 .. _kineticsfamilies:
 
 Kinetics Families
-----------------
+-----------------
 In this section users can specify the particular reaction families that they wish to use to generate their model. for example you can use only :file:`Intra_RH_Add_Endocyclic` family to build the model by:: 
 
 	kineticsFamilies = ['Intra_RH_Add_Endocyclic']
@@ -136,7 +145,7 @@ Otherwise, by typing 'default' (and excluding the brackets that are shown in the
 
 	
 Kinetics Estimator
------------------
+------------------
 The last section is specifying that RMG is estimating kinetics of reactions from rate rules. For more details on how kinetic estimations is working check :ref:`Kinetics Estimation <kinetics>`:: 
 
 	kineticsEstimator = 'rate rules'
@@ -211,8 +220,26 @@ The following is an example of a simple reactor system::
 			'CH4': 0.9,
 		},
 		terminationTime=(1e0,'s'),
+	    sensitivity=['CH4','H2'],
+	    sensitivityThreshold=0.001,
+
 	)
 
+For sensitivity analysis, RMG-Py must be compiled with the DASPK solver. 
+(See :ref:`Compiling RMG-Py with Sensitivity Analysis  <compile_sensitivity>` for more details.)
+The sensitivity and sensitivityThrehold are optional arguments for when the
+user would like to conduct sensitivity analysis with respect to the reaction rate
+coefficients for the list of species given for ``sensitivity``.  
+
+Sensitivity analysis is conducted for the list of species given for ``sensitivity`` argument in the input file.  
+The normalized concentration sensitivities with respect to the reaction rate coefficients dln(C_i)/dln(k_j) are saved to a csv file 
+with the file name ``sensitivity_1_SPC_1.csv`` with the first index value indicating the reactor system and the second naming the index of the species 
+the sensitivity analysis is conducted for.  Sensitivities to thermo of individual species is also saved as semi normalized sensitivities
+dln(C_i)/d(G_j) where the units are given in 1/(kcal mol-1). The sensitivityThreshold is set to some value so that only
+sensitivities for dln(C_i)/dln(k_j) > sensitivityThreshold  or dlnC_i/d(G_j) > sensitivityThreshold are saved to this file.  
+
+Note that in the RMG job, after the model has been generated to completion, sensitivity analysis will be conducted
+in one final simulation (sensitivity is not performed in intermediate iterations of the job).
 
 .. _simulatortolerances:
 
@@ -223,8 +250,12 @@ The next two lines specify the absolute and relative tolerance for the ODE solve
 	simulator(
 	    atol=1e-16,
 	    rtol=1e-8,
+	    sens_atol=1e-6,
+	    sens_rtol=1e-4,
 	)
 
+The ``sens_atol`` and ``sens_rtol`` are optional arguments for the sensitivity absolute tolerance and sensitivity relative tolerances, respectively.  They
+are set to a default value of 1e-6 and 1e-4 respectively unless the user specifies otherwise.  They do not apply when sensitivity analysis is not conducted.
 
 .. _pruning:
 
@@ -402,6 +433,8 @@ The following is an example of pressure dependence options ::
 		maximumAtoms=16,
 	)
 
+Regarding the number of polynomial coeffients for Chebyshev interpolated rates, plese refer to the :ref:`documentation <rmgpy.kinetics.Chebyshev>`. The number of pressures and temperature coefficents should always be smaller than the respective number of user-specified temperatures and pressures. 
+
 Miscellaneous Options
 ===================== 
 
@@ -410,10 +443,28 @@ Miscellaneous options::
     options(
         units='si',
         saveRestartPeriod=(1,'hour'),
-        drawMolecules=False,
+        drawMolecules=True,
         generatePlots=False,
+        saveSimulationProfiles=True,
+        verboseComments=False,
+        saveEdgeSpecies=True,
     )
-    
+
+The ``units`` field is set to ``si``.  Currently there are no other unit options.
+
+The ``saveRestartPeriod`` indictes how frequently you wish to save restart files. For very large/long RMG jobs, this process can take a significant amount of time. In such cases, the user may wish to increase the time period for saving these restart files.
+
+Setting ``drawMolecules=True`` will let RMG know that you want to save 2-D images (png files in the local ``species`` folder) of all species in the generated core model. This feature is recommended if you wish to easily view the species and reactions in the html file that accompanies an RMG job. Otherwise, the user will be forced to decifer SMILES strings. Also note that if ``drawMolecules=False``, but the user specifies a ``pressureDependence`` section of the input file, RMG will still generate species files in the ``species`` folder, but only those that pertain to pressure dependent networks that RMG discovers. 
+
+Setting ``generatePlots`` to ``True`` will generate a number of plots describing the statistics of the RMG job, including the reaction model core and edge size and memory use versus  execution time. These will be placed in the output directory in the plot/ folder.
+
+Setting ``saveSimulationProfiles`` to ``True`` will make RMG save csv files of the simulation in .csv files in the ``solver/`` folder.  The filename will be ``simulation_1_26.csv`` where the first number corresponds to the reaciton system, and the second number corresponds to the total number of species at the point of the simulation.  Therefore, the highest second number will indicate the latest simulation that RMG has complete while enlarging the core model.  The information inside the csv file will provide the time, reactor volume in m^3, as well as mole fractions of the individual species.
+
+Setting ``verboseComments`` to ``True`` will make RMG generate chemkin files with complete verbose commentary for the kinetic and thermo parameters.  This will be helpful in debugging what values are being averaged for the kinetics.  Note that this may produce very large files.  
+
+Setting ``saveEdgeSpecies`` to ``True`` will make RMG generate chemkin files of the edge reactions in addition to the core model in files such as ``chem_edge.inp`` and ``chem_edge_annotated.inp`` files located inside the ``chemkin`` folder.  These files will be helpful in viewing RMG's estimate for edge reactions and seeing if certain reactions one expects are actually in the edge or not.  
+
+
 Species Constraints
 ===================== 
 

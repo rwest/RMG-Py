@@ -33,18 +33,17 @@ This module contains functionality for working with kinetics families.
 """
 
 import os.path
-import re
 import logging
 
 from rmgpy.data.base import DatabaseError, Database, Entry
 
-from rmgpy.reaction import Reaction, ReactionError
-from rmgpy.kinetics import Arrhenius, ArrheniusEP, ThirdBody, Lindemann, Troe, \
+from rmgpy.reaction import Reaction
+from rmgpy.kinetics import Arrhenius, ThirdBody, Lindemann, Troe, \
                            PDepArrhenius, MultiArrhenius, MultiPDepArrhenius, \
-                           Chebyshev, KineticsData, PDepKineticsModel
-from rmgpy.molecule import Bond, GroupBond, Group, Molecule
+                           PDepKineticsModel
+from rmgpy.molecule import Molecule
 from rmgpy.species import Species
-from .common import KineticsError, saveEntry
+from .common import saveEntry
 
 ################################################################################
 
@@ -114,7 +113,7 @@ class KineticsLibrary(Database):
     A class for working with an RMG kinetics library.
     """
 
-    def __init__(self, label='', name='', shortDesc='', longDesc=''):
+    def __init__(self, label='', name='', solvent=None, shortDesc='', longDesc=''):
         Database.__init__(self, label=label, name=name, shortDesc=shortDesc, longDesc=longDesc)
         
     def __str__(self):
@@ -136,7 +135,7 @@ class KineticsLibrary(Database):
                     ):
                     r1.duplicate = True
                     r2.duplicate = True
-
+                    
     def checkForDuplicates(self):
         """
         Check that all duplicate reactions in the kinetics library are
@@ -178,8 +177,8 @@ class KineticsLibrary(Database):
                         print "Reactions isomorphic but with different reversibilities"
                         continue
                     duplicates.append(entry)
-            
-            assert len(duplicates)>1
+            if len(duplicates)<=1:
+                continue
             kineticsList = []
             longDesc = ''
             
@@ -336,6 +335,7 @@ class KineticsLibrary(Database):
                 index = index+1,
                 item = reaction,
                 data = reaction.kinetics,
+                label = str(reaction)
             )
             entry.longDesc = reaction.kinetics.comment
             reaction.kinetics.comment = ''

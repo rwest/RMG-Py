@@ -10,7 +10,6 @@ from rmgpy.qm.main import QMSettings, QMCalculator
 # from rmgpy.qm.gaussian import QMSettings, QMCalculator
 # from rmgpy.qm.mopac import QMSettings, QMCalculator
 from rmgpy.molecule import Molecule
-import qmdata
 
 
 mol = Molecule().fromSMILES('C1=CC=C2C=CC=CC2=C1')

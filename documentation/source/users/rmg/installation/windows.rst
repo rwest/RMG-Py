@@ -78,9 +78,11 @@ Python
 	#                                        % (self.linker_dll, shared_option,
 	#                                           entry_point))
 
-* Point distutils to MinGW: ::
+* Tell distutils to use the MinGW compiler, by typing this in a Git Bash shell: ::
 
 	echo -e "[build]\ncompiler=mingw32" > /c/Python27/Lib/distutils/distutils.cfg
+	
+  it will create a file C:\\Python27\\Lib\\distutils\\distutils.cfg containing the appropriate setting.
 
 * Add Python bindings to MinGW's library: ::
 
@@ -90,7 +92,12 @@ Python
 	mv libpython27.a /c/MinGW/lib/libpython27.a
 	rm python27.def
 
-  If the ``pexports`` step doesn't work then you can download the :file:`python27.def` file from the link on the `Cython wiki <http://wiki.cython.org/InstallingOnWindows>`_ and continue from the ``dlltool`` step.
+  If the ``pexports`` step doesn't work because the dll is in a different place then try one of these lines instead, depending on where your python27.dll file is::
+  
+	pexports /c/Python27/python27.dll > python27.def
+	pexports $SYSTEMROOT/SysWOW64/python27.dll > python27.def
+  	
+  or you can download the :file:`python27.def` file from the link on the `Cython wiki page on Installing On Windows <https://github.com/cython/cython/wiki/InstallingOnWindows>`_ and continue from the ``dlltool`` step.
 
 	
 .. _prepackageddependencies:
@@ -115,12 +122,13 @@ Download and run the installers listed below. These builds have been verified as
 * `openbabel-python 1.7 <http://softlayer.dl.sourceforge.net/project/openbabel/openbabel-python/1.7/openbabel-python-1.7.py27.exe>`_
 * `py2cairo 1.10.0 <http://wxpython.org/cairo/py2cairo-1.10.0.win32-py2.7.exe>`_
 * `Graphviz 2.28.0 <http://www.graphviz.org/pub/graphviz/stable/windows/graphviz-2.28.0.msi>`_
+* `MEncoder <http://sourceforge.net/projects/mplayerwin/files/MPlayer-MEncoder/>`_
 
 .. _remainingdependencies:
 
 
 RDKit
-================
+=====
 
 Project home on GitHub: https://github.com/rdkit/rdkit
 
@@ -149,21 +157,22 @@ RMG
 * Download all RMG source packages: ::
 
 	cd /c
-	git clone git@github.com:jwallen/PyDAS.git
-	git clone git@github.com:jwallen/PyDQED.git
+	git clone git@github.com:GreenGroup/PyDAS.git
+	git clone git@github.com:GreenGroup/PyDQED.git
 	git clone git@github.com:GreenGroup/RMG-database.git
 	git clone git@github.com:GreenGroup/RMG-Py.git
 
 * Build PyDAS by running the provided "make.bat" file, then install it: ::
 
-	cd /c/PyDAS
-	python setup.py install
+    cd /c/PyDAS
+    mingw32-make
+    mingw32-make install
 
 * Build and install PyDQED: ::
 
-	cd /c/PyDQED
-	mingw32-make
-	python setup.py install
+    cd /c/PyDQED
+    mingw32-make
+    mingw32-make install
 
 * Build and install RMG-Py: ::
 

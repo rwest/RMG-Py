@@ -1046,6 +1046,10 @@ class Molecule(Graph):
             elif atom.element.symbol == 'S':
                 sulfurCount += 1
             radicalCount += atom.radicalElectrons
+        
+        
+        if group.multiplicity:
+            if self.multiplicity not in group.multiplicity: return False
         # If the molecule has fewer of any of these things than the functional
         # group does, then we know the subgraph isomorphism fails without
         # needing to perform the full isomorphism check
@@ -1053,8 +1057,7 @@ class Molecule(Graph):
             carbonCount < group.carbonCount or
             nitrogenCount < group.nitrogenCount or
             oxygenCount < group.oxygenCount or
-            sulfurCount < group.sulfurCount or
-            self.multiplicity not in group.multiplicity):
+            sulfurCount < group.sulfurCount):
             return False
 
         # Do the isomorphism comparison
@@ -1072,10 +1075,39 @@ class Molecule(Graph):
         The `other` parameter must be a :class:`Group` object, or a
         :class:`TypeError` is raised.
         """
+        cython.declare(group=Group, atom=Atom)
+        cython.declare(carbonCount=cython.short, nitrogenCount=cython.short, oxygenCount=cython.short, sulfurCount=cython.short, radicalCount=cython.short)
+
         # It only makes sense to compare a Molecule to a Group for subgraph
         # isomorphism, so raise an exception if this is not what was requested
         if not isinstance(other, Group):
             raise TypeError('Got a {0} object for parameter "other", when a Group object is required.'.format(other.__class__))
+        group = other
+                # Count the number of carbons, oxygens, and radicals in the molecule
+        carbonCount = 0; nitrogenCount = 0; oxygenCount = 0; sulfurCount = 0; radicalCount = 0
+        for atom in self.vertices:
+            if atom.element.symbol == 'C':
+                carbonCount += 1
+            elif atom.element.symbol == 'N':
+                nitrogenCount += 1
+            elif atom.element.symbol == 'O':
+                oxygenCount += 1
+            elif atom.element.symbol == 'S':
+                sulfurCount += 1
+            radicalCount += atom.radicalElectrons
+        
+        
+        if group.multiplicity:
+            if self.multiplicity not in group.multiplicity: return []
+        # If the molecule has fewer of any of these things than the functional
+        # group does, then we know the subgraph isomorphism fails without
+        # needing to perform the full isomorphism check
+        if (radicalCount < group.radicalCount or
+            carbonCount < group.carbonCount or
+            nitrogenCount < group.nitrogenCount or
+            oxygenCount < group.oxygenCount or
+            sulfurCount < group.sulfurCount):
+            return []
         # Do the isomorphism comparison
         result = Graph.findSubgraphIsomorphisms(self, other, initialMap)
         return result
@@ -1494,12 +1526,12 @@ class Molecule(Graph):
             return rdkitmol, rdAtomIndices
         return rdkitmol
 
-    def toAdjacencyList(self, label='', removeH=False, removeLonePairs=False):
+    def toAdjacencyList(self, label='', removeH=False, removeLonePairs=False, oldStyle=False):
         """
         Convert the molecular structure to a string adjacency list.
         """
         from .adjlist import toAdjacencyList
-        result = toAdjacencyList(self.vertices, self.multiplicity,  label=label, group=False, removeH=removeH, removeLonePairs=removeLonePairs)
+        result = toAdjacencyList(self.vertices, self.multiplicity,  label=label, group=False, removeH=removeH, removeLonePairs=removeLonePairs, oldStyle=oldStyle)
         return result
 
     def isLinear(self):
@@ -1649,6 +1681,7 @@ class Molecule(Graph):
             newIsomers = isomer.getAdjacentResonanceIsomers()
             newIsomers += isomer.getLonePairRadicalResonanceIsomers()
             newIsomers += isomer.getN5dd_N5tsResonanceIsomers()
+            
             for newIsomer in newIsomers:
                 newIsomer.updateAtomTypes()
                 # Append to isomer list if unique
@@ -1657,6 +1690,23 @@ class Molecule(Graph):
                         break
                 else:
                     isomers.append(newIsomer)
+            
+            newIsomers = isomer.getAromaticResonanceIsomers()
+            # Perform extra check for aromatic isomers when updating atomtypes
+            for newIsomer in newIsomers:
+                try:
+                    newIsomer.updateAtomTypes()
+                except:
+                    # Something incorrect has happened, ie. 2 double bonds on a Cb atomtype
+                    # Do not add the new isomer since it is malformed
+                    continue 
+                # Append to isomer list if unique
+                for isom in isomers:
+                    if isom.isIsomorphic(newIsomer):
+                        break
+                else:
+                    isomers.append(newIsomer)
+            
                         
             # Move to next resonance isomer
             index += 1
@@ -1830,6 +1880,48 @@ class Molecule(Graph):
                     # Append to isomer list if unique
                     isomers.append(isomer)
                     
+        return isomers
+    
+    def getAromaticResonanceIsomers(self):
+        """
+        Generate the aromatic form of the molecule.
+        """
+        cython.declare(isomers=list, molecule=Molecule, rdAtomIndices=dict, aromatic=cython.bint, aromaticBonds=list)
+        cython.declare(rings=list, ring0=list, i=cython.int, atom1=Atom, atom2=Atom, bond=Bond)
+        
+        isomers = []
+
+        # Radicals
+        if self.isCyclic():
+            molecule = self.copy(deep=True)
+            try:
+                rdkitmol, rdAtomIndices = molecule.toRDKitMol(removeHs=True, returnMapping=True)
+            except:
+                return []
+            aromatic = False
+            rings = molecule.getSmallestSetOfSmallestRings()            
+            for ring0 in rings:
+                # In RMG, only 6-member rings can be considered aromatic, so ignore all other rings                
+                aromaticBonds = []
+                if len(ring0) == 6:
+                    # Figure out which atoms and bonds are aromatic and reassign appropriately:
+                    for i, atom1 in enumerate(ring0):
+                        if not atom1.isCarbon():
+                            # all atoms in the ring must be carbon in RMG for our definition of aromatic
+                            break
+                        for atom2 in ring0[i+1:]:
+                            if molecule.hasBond(atom1, atom2):
+                                if str(rdkitmol.GetBondBetweenAtoms(rdAtomIndices[atom1],rdAtomIndices[atom2]).GetBondType()) == 'AROMATIC':
+                                    aromaticBonds.append(molecule.getBond(atom1, atom2))
+                if len(aromaticBonds) == 6:
+                    aromatic = True
+                    # Only change bonds if there are all 6 are aromatic.  Otherwise don't do anything
+                    for bond in aromaticBonds:
+                        bond.order = 'B'
+                        
+            if aromatic:              
+                isomers.append(molecule)
+
         return isomers
 
     def findAllDelocalizationPaths(self, atom1):
