@@ -714,18 +714,22 @@ class Group(Graph):
         isomorphism checks.
         """
         cython.declare(atom=GroupAtom, atomType=AtomType)
-        cython.declare(carbon=AtomType, nitrogen=AtomType, oxygen=AtomType, sulfur=AtomType)
-        cython.declare(isCarbon=cython.bint, isNitrogen=cython.bint, isOxygen=cython.bint, isSulfur=cython.bint, radical=cython.int)
+        cython.declare(carbon=AtomType, nitrogen=AtomType, oxygen=AtomType,fluorine=AtomType, sulfur=AtomType, chlorine=AtomType)
+        cython.declare(isCarbon=cython.bint, isNitrogen=cython.bint, isOxygen=cython.bint, isFluorine=cython.bint, isSulfur=cython.bint, isChlorine=cython.bint, radical=cython.int)
         
         carbon   = atomTypes['C']
         nitrogen = atomTypes['N']
         oxygen   = atomTypes['O']
         sulfur   = atomTypes['S']
+        fluorine   = atomTypes['F']
+        chlorine   = atomTypes['Cl']
         
         self.carbonCount   = 0
         self.nitrogenCount = 0
         self.oxygenCount   = 0
+        self.fluorineCount   = 0
         self.sulfurCount   = 0
+        self.chlorineCount   = 0
         self.radicalCount  = 0
         for atom in self.vertices:
             if len(atom.atomType) == 1:
@@ -733,15 +737,21 @@ class Group(Graph):
                 isCarbon   = atomType.equivalent(carbon)
                 isNitrogen = atomType.equivalent(nitrogen)
                 isOxygen   = atomType.equivalent(oxygen)
+                isFluorine   = atomType.equivalent(fluorine)
                 isSulfur   = atomType.equivalent(sulfur)
-                if isCarbon and not isNitrogen and not isOxygen and not isSulfur:
+                isChlorine   = atomType.equivalent(chlorine)
+                if isCarbon and not isNitrogen and not isOxygen and not isSulfur and not isFluorine and not isChlorine:
                     self.carbonCount += 1
-                elif isNitrogen and not isCarbon and not isOxygen and not isSulfur:
+                elif isNitrogen and not isCarbon and not isOxygen and not isSulfur and not isFluorine and not isChlorine:
                     self.nitrogenCount += 1
-                elif isOxygen and not isCarbon and not isNitrogen and not isSulfur:
+                elif isOxygen and not isCarbon and not isNitrogen and not isSulfur and not isFluorine and not isChlorine:
                     self.oxygenCount += 1
-                elif isSulfur and not isCarbon and not isNitrogen and not isOxygen:
+                elif isFluorine and not isCarbon and not isNitrogen and not isOxygen and not isSulfur and not isChlorine:
+                        self.fluorineCount += 1    
+                elif isSulfur and not isCarbon and not isNitrogen and not isOxygen and not isFluorine and not isChlorine:
                     self.sulfurCount += 1
+                elif isChlorine and not isCarbon and not isNitrogen and not isSulfur and not isOxygen and not isFluorine:
+                        self.chlorineCount += 1    
             if len(atom.radicalElectrons) == 1:
                 radical = atom.radicalElectrons[0]
                 self.radicalCount += radical
