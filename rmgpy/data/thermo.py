@@ -46,6 +46,10 @@ from rmgpy.molecule import Molecule, Atom, Bond, Group
 import rmgpy.molecule
 from rmgpy.species import Species
 
+
+#: This dictionary is used to add multiplicity to species label
+_multiplicity_labels = {1:'S',2:'D',3:'T',4:'Q',5:'V',}
+
 ################################################################################
 
 def saveEntry(f, entry):
@@ -437,8 +441,8 @@ class ThermoDatabase(object):
         points to the top-level folder of the thermo depository.
         """
         if not os.path.exists(path): os.mkdir(path)
-        self.depository['stable'].save(os.path.join(path, 'stable.py'))
-        self.depository['radical'].save(os.path.join(path, 'radical.py'))
+        for depo in self.depository.keys():
+            self.depository[depo].save(os.path.join(path, depo+'.py'))
 
     def saveLibraries(self, path):
         """
@@ -455,14 +459,9 @@ class ThermoDatabase(object):
         points to the top-level folder of the thermo groups.
         """
         if not os.path.exists(path): os.mkdir(path)
-        self.groups['group'].save(os.path.join(path, 'group.py'))
-        self.groups['gauche'].save(os.path.join(path, 'gauche.py'))
-        self.groups['int15'].save(os.path.join(path, 'int15.py'))
-        self.groups['ring'].save(os.path.join(path, 'ring.py'))
-        self.groups['radical'].save(os.path.join(path, 'radical.py'))
-        self.groups['polycyclic'].save(os.path.join(path, 'polycyclic.py'))        
-        self.groups['other'].save(os.path.join(path, 'other.py'))
-
+        for group in self.groups.keys():
+            self.groups[group].save(os.path.join(path, group+'.py'))
+            
     def loadOld(self, path):
         """
         Load the old RMG thermo database from the given `path` on disk, where
@@ -622,7 +621,7 @@ class ThermoDatabase(object):
         )
 
 
-    def getThermoData(self, species, trainingSet=None):
+    def getThermoData(self, species, trainingSet=None, quantumMechanics=None):
         """
         Return the thermodynamic parameters for a given :class:`Species`
         object `species`. This function first searches the loaded libraries
@@ -631,17 +630,118 @@ class ThermoDatabase(object):
         
         Returns: ThermoData
         """
-        # Check the libraries in order first; return the first successful match
-        thermoData = self.getThermoDataFromLibraries(species, trainingSet)
-        if thermoData is not None:
-            assert len(thermoData)==3, "thermoData should be a tuple at this point, eg. (thermoData, library, entry)"
-            thermoData = thermoData[0]
-        else:
-            # Thermo not found in any loaded libraries, so estimate
-            thermoData = self.getThermoDataFromGroups(species)
+        
+        thermo0 = None
+        
+        thermo0 = self.getThermoDataFromLibraries(species)
+        
+        if thermo0 is not None:
+            logging.info("Found thermo for {0} in {1}".format(species.label,thermo0[0].comment.lower()))
+            assert len(thermo0) == 3, "thermo0 should be a tuple at this point: (thermoData, library, entry)"
+            thermo0 = thermo0[0]
+            
+        elif quantumMechanics:
+            original_molecule = species.molecule[0]
+            if quantumMechanics.settings.onlyCyclics and not original_molecule.isCyclic():
+                pass
+            else: # try a QM calculation
+                if original_molecule.getRadicalCount() > quantumMechanics.settings.maxRadicalNumber:
+                    # Too many radicals for direct calculation: use HBI.
+                    logging.info("{0} radicals on {1} exceeds limit of {2}. Using HBI method.".format(
+                        original_molecule.getRadicalCount(),
+                        species.label,
+                        quantumMechanics.settings.maxRadicalNumber,
+                        ))
+                    
+                    # Need to estimate thermo via each resonance isomer
+                    thermo = []
+                    for molecule in species.molecule:
+                        molecule.clearLabeledAtoms()
+                        # Try to see if the saturated molecule can be found in the libraries
+                        tdata = self.estimateRadicalThermoViaHBI(molecule, self.getThermoDataFromLibraries)
+                        priority = 1
+                        if tdata is None:
+                            # Then attempt quantum mechanics job on the saturated molecule
+                            tdata = self.estimateRadicalThermoViaHBI(molecule, quantumMechanics.getThermoData)
+                            priority = 2
+                        if tdata is None:
+                            # Fall back to group additivity
+                            tdata = self.estimateThermoViaGroupAdditivity(molecule)
+                            priority = 3
+                        
+                        thermo.append((priority, tdata.getEnthalpy(298.), molecule, tdata))
+                    
+                    if len(thermo) > 1:
+                        # Sort thermo first by the priority, then by the most stable H298 value
+                        thermo = sorted(thermo, key=lambda x: (x[0], x[1])) 
+                        for i in range(len(thermo)): 
+                            logging.info("Resonance isomer {0} {1} gives H298={2:.0f} J/mol".format(i+1, thermo[i][2].toSMILES(), thermo[i][1]))
+                        # Save resonance isomers reordered by their thermo
+                        species.molecule = [item[2] for item in thermo]
+                        original_molecule = species.molecule[0]
+                    thermo0 = thermo[0][3] 
+                    
+                    # If priority == 2
+                    if thermo[0][0] == 2:
+                        # Write the QM molecule thermo to a library so that can be used in future RMG jobs.  (Do this only if it came from a QM calculation)
+                        quantumMechanics.database.loadEntry(index = len(quantumMechanics.database.entries) + 1,
+                                                        label = original_molecule.toSMILES() + '_({0})'.format(_multiplicity_labels[original_molecule.multiplicity]),
+                                                        molecule = original_molecule.toAdjacencyList(),
+                                                        thermo = thermo0,
+                                                        shortDesc = thermo0.comment
+                                                        
+                                                        )                    
+#                    # For writing thermodata HBI check for QM molecules
+#                    with open('thermoHBIcheck.txt','a') as f:
+#                        f.write('// {0!r}\n'.format(thermo0).replace('),','),\n//           '))
+#                        f.write('{0}\n'.format(original_molecule.toSMILES()))
+#                        f.write('{0}\n\n'.format(original_molecule.toAdjacencyList(removeH=False)))
+
+                else: # Not too many radicals: do a direct calculation.
+                    thermo0 = quantumMechanics.getThermoData(original_molecule) # returns None if it fails
+                
+                    if thermo0 is not None:
+                        # Write the QM molecule thermo to a library so that can be used in future RMG jobs.
+                        quantumMechanics.database.loadEntry(index = len(quantumMechanics.database.entries) + 1,
+                                                        label = original_molecule.toSMILES() + '_({0})'.format(_multiplicity_labels[original_molecule.multiplicity]),
+                                                        molecule = original_molecule.toAdjacencyList(),
+                                                        thermo = thermo0,
+                                                        shortDesc = thermo0.comment
+                                                        )                    
+        if thermo0 is None:
+            # Use group additivity methods to determine thermo for molecule (or if QM fails completely)
+            original_molecule = species.molecule[0]
+            if original_molecule.getRadicalCount() > 0:
+                # Molecule is a radical, use the HBI method
+                thermo = []
+                for molecule in species.molecule:
+                    molecule.clearLabeledAtoms()
+                    # First see if the saturated molecule is in the libaries
+                    tdata = self.estimateRadicalThermoViaHBI(molecule, self.getThermoDataFromLibraries)
+                    priority = 1
+                    if tdata is None:
+                        # Otherwise use normal group additivity to obtain the thermo for the molecule
+                        tdata = self.estimateThermoViaGroupAdditivity(molecule)
+                        priority = 2
+                    thermo.append((priority, tdata.getEnthalpy(298.), molecule, tdata))
+                
+                if len(thermo) > 1:
+                    # Sort thermo first by the priority, then by the most stable H298 value
+                    thermo = sorted(thermo, key=lambda x: (x[0], x[1]))
+                    for i in range(len(thermo)): 
+                        logging.info("Resonance isomer {0} {1} gives H298={2:.0f} J/mol".format(i+1, thermo[i][2].toSMILES(), thermo[i][1]))
+                    # Save resonance isomers reordered by their thermo
+                    species.molecule = [item[2] for item in thermo]
+                thermo0 = thermo[0][3] 
+            else:
+                # Saturated molecule, does not need HBI method
+                thermo0 = self.getThermoDataFromGroups(species)
+                
+        # Make sure to calculate Cp0 and CpInf if it wasn't done already
+        self.findCp0andCpInf(species, thermo0)
 
         # Return the resulting thermo parameters
-        return thermoData
+        return thermo0
     
         
     def getThermoDataFromLibraries(self, species, trainingSet=None):
@@ -816,59 +916,42 @@ class ThermoDatabase(object):
         then applying hydrogen bond increment corrections for the radical
         site(s) and correcting for the symmetry.
         
-        The stableThermoEstimator should NOT have already corrected for the symmetry of the 
-        stable saturated molecule, because we do not "uncorrect" it. 
-        I.e. stableThermoEstimator should be a method that overestimates the entropy by R*ln(symmetry).
         """
-        #TODO: check the validity of the above statement for QMThermo and databases.
         
         assert molecule.isRadical(), "Method only valid for radicals."
-        
-        # Make a copy of the structure so we don't change the original
         saturatedStruct = molecule.copy(deep=True)
-        
-        # Saturate structure by replacing all radicals with bonds to
-        # hydrogen atoms
-        added = {}
-        for atom in saturatedStruct.atoms:
-            for i in range(atom.radicalElectrons):
-                H = Atom('H')
-                bond = Bond(atom, H, 'S')
-                saturatedStruct.addAtom(H)
-                saturatedStruct.addBond(bond)
-                if atom not in added:
-                    added[atom] = []
-                added[atom].append([H, bond])
-                atom.decrementRadical()
-
-        # Update the atom types of the saturated structure (not sure why
-        # this is necessary, because saturating with H shouldn't be
-        # changing atom types, but it doesn't hurt anything and is not
-        # very expensive, so will do it anyway)
-        saturatedStruct.updateConnectivityValues()
-        saturatedStruct.sortVertices()
-        saturatedStruct.updateAtomTypes()
-        saturatedStruct.updateLonePairs()
-        saturatedStruct.multiplicity = 1
+        added = saturatedStruct.saturate()
+        saturatedStruct.props['saturated'] = True
         
         # Get thermo estimate for saturated form of structure
-        try:
-            thermoData = stableThermoEstimator(saturatedStruct)
-        except AttributeError:
-            # Probably looking for thermo in a library 
+        if stableThermoEstimator == self.getThermoDataFromLibraries:
+            # Get data from libraries
             saturatedSpec = Species(molecule=[saturatedStruct])
-            thermoData = stableThermoEstimator(saturatedSpec)
-            if thermoData:
-                assert len(thermoData) == 3, "thermoData should be a tuple at this point: (thermoData, library, entry)"
-                thermoData = thermoData[0]
-        if thermoData is None:
+            thermoData_sat = stableThermoEstimator(saturatedSpec)
+            if thermoData_sat:
+                assert len(thermoData_sat) == 3, "thermoData should be a tuple at this point: (thermoData, library, entry)"
+                thermoData_sat = thermoData_sat[0]
+        else:
+            thermoData_sat = stableThermoEstimator(saturatedStruct)
+        if thermoData_sat is None:
             # logging.info("Thermo data of saturated {0} of molecule {1} is None.".format(saturatedStruct, molecule))
             return None
-        assert thermoData is not None, "Thermo data of saturated {0} of molecule {1} is None!".format(saturatedStruct, molecule)
+        assert thermoData_sat is not None, "Thermo data of saturated {0} of molecule {1} is None!".format(saturatedStruct, molecule)
+        
+        # Convert to ThermoData object if necessary in order to add and subtract from enthalpy and entropy values
+        if not isinstance(thermoData_sat, ThermoData):
+            thermoData_sat = thermoData_sat.toThermoData()
+        
+        
+        if not stableThermoEstimator == self.computeGroupAdditivityThermo:
+            #remove the symmetry contribution to the entropy of the saturated molecule
+            ##assumes that the thermo data comes from QMTP or from a thermolibrary
+            thermoData_sat.S298.value_si += constants.R * math.log(saturatedStruct.getSymmetryNumber())
+        
+        thermoData = thermoData_sat
         
         # Correct entropy for symmetry number of radical structure
-        molecule.calculateSymmetryNumber()
-        thermoData.S298.value_si -= constants.R * math.log(molecule.symmetryNumber)
+        thermoData.S298.value_si -= constants.R * math.log(molecule.getSymmetryNumber())
         
         # For each radical site, get radical correction
         # Only one radical site should be considered at a time; all others
@@ -911,27 +994,19 @@ class ThermoDatabase(object):
         # will probably not visit the right atoms, and so will get the thermo wrong
         molecule.sortVertices()
 
-        # Create the ThermoData object
-        thermoData = ThermoData(
-            Tdata = ([300,400,500,600,800,1000,1500],"K"),
-            Cpdata = ([0.0,0.0,0.0,0.0,0.0,0.0,0.0],"J/(mol*K)"),
-            H298 = (0.0,"kJ/mol"),
-            S298 = (0.0,"J/(mol*K)"),
-        )
-
         if molecule.isRadical(): # radical species
-            return self.estimateRadicalThermoViaHBI(molecule, self.estimateThermoViaGroupAdditivityForSaturatedStructWithoutSymmetryCorrection)
+            thermoData = self.estimateRadicalThermoViaHBI(molecule, self.computeGroupAdditivityThermo)
+            return thermoData
 
         else: # non-radical species
-            thermoData = self.estimateThermoViaGroupAdditivityForSaturatedStructWithoutSymmetryCorrection(molecule)
+            thermoData = self.computeGroupAdditivityThermo(molecule)
+            # Correct entropy for symmetry number
+            if not 'saturated' in molecule.props: 
+                thermoData.S298.value_si -= constants.R * math.log(molecule.getSymmetryNumber())
+            return thermoData
 
-        # Correct entropy for symmetry number
-        molecule.calculateSymmetryNumber()
-        thermoData.S298.value_si -= constants.R * math.log(molecule.symmetryNumber)
 
-        return thermoData
-
-    def estimateThermoViaGroupAdditivityForSaturatedStructWithoutSymmetryCorrection(self, molecule):
+    def computeGroupAdditivityThermo(self, molecule):
         """
         Return the set of thermodynamic parameters corresponding to a given
         :class:`Molecule` object `molecule` by estimation using the group

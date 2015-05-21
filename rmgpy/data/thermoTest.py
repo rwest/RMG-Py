@@ -84,6 +84,20 @@ class TestThermoDatabase(unittest.TestCase):
             for T, Cp in zip(self.Tlist, Cplist):
                 self.assertAlmostEqual(Cp, thermoData.getHeatCapacity(T) / 4.184, places=1, msg="Cp{1} error for {0}".format(smiles,T))
 
+    def testSymmetryContributionRadicals(self):
+        """
+        Test that the symmetry contribution is correctly added for radicals
+        estimated via the HBI method. 
+        """
+        spc = Species(molecule=[Molecule().fromSMILES('[CH3]')])
+        
+        thermoData_lib = self.database.getThermoDataFromLibraries(spc)[0]
+        
+        thermoData_ga = self.database.getThermoDataFromGroups(spc)
+        
+        self.assertAlmostEqual(thermoData_lib.getEntropy(298.), thermoData_ga.getEntropy(298.), 0)
+
+        
     @work_in_progress
     def testSymmetryNumberGeneration(self):
         """

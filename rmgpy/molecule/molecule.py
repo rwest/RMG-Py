@@ -602,7 +602,7 @@ class Molecule(Graph):
     `InChI` string representing the molecular structure.
     """
 
-    def __init__(self, atoms=None, symmetry=1, multiplicity=-187, SMILES='', InChI='', SMARTS=''):
+    def __init__(self, atoms=None, symmetry=-1, multiplicity=-187, props=None ,SMILES='', InChI='', SMARTS=''):
         Graph.__init__(self, atoms)
         self.symmetryNumber = symmetry
         self.multiplicity = multiplicity
@@ -610,6 +610,7 @@ class Molecule(Graph):
         if SMILES != '': self.fromSMILES(SMILES)
         elif InChI != '': self.fromInChI(InChI)
         elif SMARTS != '': self.fromSMARTS(SMARTS)
+        self.props = props or {}
         if multiplicity != -187:  # it was set explicitly, so re-set it (fromSMILES etc may have changed it)
             self.multiplicity = multiplicity
     
@@ -633,7 +634,7 @@ class Molecule(Graph):
         """
         A helper function used when pickling an object.
         """
-        return (Molecule, (self.vertices, self.symmetryNumber, self.multiplicity))
+        return (Molecule, (self.vertices, self.symmetryNumber, self.multiplicity, self.props))
 
     def __getAtoms(self): return self.vertices
     def __setAtoms(self, atoms): self.vertices = atoms
@@ -1361,7 +1362,6 @@ class Molecule(Graph):
         Separate layer with a forward slash character.
         """
         inchi = self.toInChI()
-        
         return '/'.join([inchi , self.createMultiplicityLayer()])
         
     
@@ -1407,7 +1407,7 @@ class Molecule(Graph):
         """
         key = self.toInChIKey()
         
-        return ''.join([key , self.createMultiplicityLayer()])
+        return '-'.join([key , self.createMultiplicityLayer()])
     
 
     def toSMARTS(self):
@@ -1648,6 +1648,17 @@ class Molecule(Graph):
             
             return self.calculateCp0() + (Nvib + 0.5 * Nrotors) * constants.R
 
+    def getSymmetryNumber(self):
+        """
+        Returns the symmetry number of Molecule.
+        First checks whether the value is stored as an attribute of Molecule.
+        If not, it calls the calculateSymmetryNumber method. 
+        """
+        if self.symmetryNumber == -1:
+            self.calculateSymmetryNumber()
+        return self.symmetryNumber
+        
+        
     def calculateSymmetryNumber(self):
         """
         Return the symmetry number for the structure. The symmetry number
@@ -2038,9 +2049,10 @@ class Molecule(Graph):
     
     def updateLonePairs(self):
         """
-        Iterate through the atoms in the structure and calcualte the
-        number of lone electron pairs, assumin a neutral molecule.
+        Iterate through the atoms in the structure and calculate the
+        number of lone electron pairs, assuming a neutral molecule.
         """
+        cython.declare(atom1=Atom, atom2=Atom, bond12=Bond, order=float)
         for atom1 in self.vertices:
             order = 0
             if not atom1.isHydrogen():
@@ -2051,8 +2063,10 @@ class Molecule(Graph):
                         order = order + 2
                     if bond12.isTriple():
                         order = order + 3
+                    if bond12.isBenzene():
+                        order = order + 1.5
                         
-                atom1.lonePairs = 4 - atom1.radicalElectrons - order
+                atom1.lonePairs = 4 - atom1.radicalElectrons - int(order)
         
             else:
                 atom1.lonePairs = 0
@@ -2067,3 +2081,31 @@ class Molecule(Graph):
             charge += atom.charge
         return charge
 
+    def saturate(self):
+        """
+        Saturate the molecule by replacing all radicals with bonds to hydrogen atoms.  Changes self molecule object.  
+        """
+        cython.declare(added=dict, atom=Atom, i=int, H=Atom, bond=Bond)
+        added = {}
+        for atom in self.atoms:
+            for i in range(atom.radicalElectrons):
+                H = Atom('H', radicalElectrons=0, lonePairs=0, charge=0)
+                bond = Bond(atom, H, 'S')
+                self.addAtom(H)
+                self.addBond(bond)
+                if atom not in added:
+                    added[atom] = []
+                added[atom].append([H, bond])
+                atom.decrementRadical()
+      
+        # Update the atom types of the saturated structure (not sure why
+        # this is necessary, because saturating with H shouldn't be
+        # changing atom types, but it doesn't hurt anything and is not
+        # very expensive, so will do it anyway)
+        self.updateConnectivityValues()
+        self.sortVertices()
+        self.updateAtomTypes()
+        self.updateLonePairs()
+        self.multiplicity = 1
+
+        return added

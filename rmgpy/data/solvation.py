@@ -509,8 +509,8 @@ class SolvationDatabase(object):
         points to the top-level folder of the solute libraries.
         """
         if not os.path.exists(path): os.mkdir(path)
-        self.libraries['solvent'].save(os.path.join(path,'solvent.py'))
-        self.libraries['solute'].save(os.path.join(path,'solute.py'))
+        for library in self.libraries.keys():
+            self.libraries[library].save(os.path.join(path, library+'.py'))
         
     def saveGroups(self, path):
         """
@@ -518,9 +518,8 @@ class SolvationDatabase(object):
         points to the top-level folder of the solute groups.
         """
         if not os.path.exists(path): os.mkdir(path)
-        self.groups['abraham'].save(os.path.join(path, 'abraham.py'))
-        self.groups['nonacentered'].save(os.path.join(path, 'nonacentered.py'))
-        self.groups['radical'].save(os.path.join(path, 'radical.py'))
+        for group in self.groups.keys():
+            self.groups[group].save(os.path.join(path, group+'.py'))
 
     def loadOld(self, path):
         """
@@ -674,35 +673,6 @@ class SolvationDatabase(object):
         soluteData.comment = "Average of {0}".format(" and ".join(comments))
 
         return soluteData
-
-    def saturateRadicals(self, molecule):
-        saturatedStruct = molecule.copy(deep=True)
-
-        # Saturate structure by replacing all radicals with bonds to
-        # hydrogen atoms
-        added = {}
-        for atom in saturatedStruct.atoms:
-            for i in range(atom.radicalElectrons):
-                H = Atom('H')
-                bond = Bond(atom, H, 'S')
-                saturatedStruct.addAtom(H)
-                saturatedStruct.addBond(bond)
-                if atom not in added:
-                    added[atom] = []
-                added[atom].append([H, bond])
-                atom.decrementRadical()
-      
-        # Update the atom types of the saturated structure (not sure why
-        # this is necessary, because saturating with H shouldn't be
-        # changing atom types, but it doesn't hurt anything and is not
-        # very expensive, so will do it anyway)
-        saturatedStruct.updateConnectivityValues()
-        saturatedStruct.sortVertices()
-        saturatedStruct.updateAtomTypes()
-        saturatedStruct.updateLonePairs()
-        saturatedStruct.multiplicity = 1
-
-        return saturatedStruct, added
    
     def transformLonePairs(self, molecule):
         """
@@ -818,7 +788,7 @@ class SolvationDatabase(object):
 
         # Now saturate radicals with H
         if sum([atom.radicalElectrons for atom in saturatedStruct.atoms]) > 0: # radical species
-            saturatedStruct, addedToRadicals = self.saturateRadicals(saturatedStruct)
+            addedToRadicals = saturatedStruct.saturate()
 
         # Saturated structure should now have no unpaired electrons, and only "expected" lone pairs
         # based on the valency
