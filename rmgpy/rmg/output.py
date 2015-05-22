@@ -368,7 +368,7 @@ def saveDiffHTML(path, commonSpeciesList, speciesList1, speciesList2, commonReac
     This function outputs the species and reactions on an HTML page
     for the comparison of two RMG models.
     """
-    from rmgpy.model import PDepReaction
+    from rmgpy.rmg.model import PDepReaction
     from rmgpy.kinetics import Arrhenius, MultiArrhenius, MultiPDepArrhenius
 
     from rmgpy.molecule.draw import MoleculeDrawer
