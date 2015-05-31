@@ -991,7 +991,10 @@ class Network:
         return M, Elist, indices, densStates
 
     def __createNewSurfaceAndContext(self, ext, fstr='', width=800, height=600):
-        import cairo
+        try:
+            import cairocffi as cairo
+        except ImportError:
+            import cairo
         if ext == '.svg':
             surface = cairo.SVGSurface(fstr, width, height)
         elif ext == '.pdf':
@@ -1234,7 +1237,10 @@ class Network:
         surface is dictated by the `ext` parameter.
         """
         from rmgpy.molecule.draw import MoleculeDrawer, createNewSurface
-        import cairo
+        try:
+            import cairocffi as cairo
+        except ImportError:
+            import cairo
         
         fontSizeNormal = MoleculeDrawer().options['fontSizeNormal']
 
@@ -1263,7 +1269,10 @@ class Network:
         """
 
         from rmgpy.molecule.draw import MoleculeDrawer, createNewSurface
-        import cairo
+        try:
+            import cairocffi as cairo
+        except ImportError:
+            import cairo
         
         # Determine whether or not to use the molecular structures in the
         # label
