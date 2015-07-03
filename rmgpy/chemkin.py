@@ -1025,7 +1025,6 @@ def readThermoBlock(f, speciesDict):
     except:
         logging.info("Thermo file has no default temperature ranges")
         logging.info("(The line it would be on is {0!r} but that is not formatted as such)".format(line))
-        logging.info("(It should have Tmin in columns 1-10, Tmid in columns 11-20, and Tmax in columns 21-30)")
     thermoBlock = ''
     comments = ''
     while line != '' and not line.upper().strip().startswith('END'):
