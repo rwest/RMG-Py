@@ -2403,7 +2403,7 @@ $('#thermomatches_count').html("("+json.thermomatches+")");
                     for (chemkinRxn, rmgRxn) in votingReactions:
                         if (chemkinReaction == chemkinRxn):
                             if matchingSpecies in this_reaction_votes_for:
-                                this_reaction_votes_for[matchingSpecies].extend(rmgRxn)
+                                this_reaction_votes_for[matchingSpecies].append(rmgRxn)
                             else:
                                 this_reaction_votes_for[matchingSpecies] = [rmgRxn]
 
