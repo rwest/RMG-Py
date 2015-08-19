@@ -1830,7 +1830,7 @@ class ModelMatcher():
         self.known_species_file = known_species_file
         self.blocked_matches_file = os.path.splitext(known_species_file)[0] + '-BLOCKED.txt'
         self.outputThermoFile = os.path.splitext(thermo_file)[0] + '.thermo.py'
-        self.outputKineticsFile = os.path.splitext(reactions_file)[0] + '.kinetics.py'
+        self.outputKineticsFile = os.path.splitext(reactions_file)[0] + '_kinetics.py'
 
         self.loadSpecies(species_file)
         self.loadThermo(thermo_file)
