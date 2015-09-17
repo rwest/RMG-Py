@@ -58,7 +58,7 @@ class DatabaseError(Exception):
 
 ################################################################################
 
-class Entry:
+class Entry(object):
     """
     A class for representing individual records in an RMG database. Each entry
     in the database associates a chemical item (generally a species, functional
@@ -106,8 +106,8 @@ class Entry:
         self.data = data
         self.reference = reference
         self.referenceType = referenceType
-        self.shortDesc = shortDesc
-        self.longDesc = longDesc
+        self._shortDesc = unicode(shortDesc)
+        self._longDesc = unicode(longDesc)
         self.rank = rank
 
     def __str__(self):
@@ -115,6 +115,25 @@ class Entry:
 
     def __repr__(self):
         return '<Entry index={0:d} label="{1}">'.format(self.index, self.label)
+    
+    @property
+    def longDesc(self):
+        return self._longDesc
+    @longDesc.setter
+    def longDesc(self, value):
+        if value is None:
+            self._longDesc = None
+        else:
+            self._longDesc = unicode(value)
+    @property
+    def shortDesc(self):
+        return self._shortDesc
+    @shortDesc.setter
+    def shortDesc(self, value):
+        if value is None:
+            self._shortDesc = None
+        else:
+            self._shortDesc = unicode(value)
 
 ################################################################################
 
@@ -671,6 +690,9 @@ class Database:
             entries = self.entries.values()
             entries.sort(key=lambda x: (x.index, x.label))
 
+        def comment(s):
+            "Return the string, with each line prefixed with '// '"
+            return '\n'.join('// ' + line if line else '' for line in s.split('\n'))
         try:
             f = open(path, 'w')
             f.write('////////////////////////////////////////////////////////////////////////////////\n')
@@ -682,9 +704,13 @@ class Database:
             for entry in entries:
                 f.write(entry.label + '\n')
                 if isinstance(entry.item, Molecule):
-                    f.write(entry.item.toAdjacencyList(removeH=False) + '\n')
+                    try:
+                        f.write(entry.item.toAdjacencyList(removeH=True, oldStyle=True) + '\n')
+                    except InvalidAdjacencyListError:
+                        f.write("// Couldn't save in old syntax adjacency list. Here it is in new syntax:\n")
+                        f.write(comment(entry.item.toAdjacencyList(removeH=False, oldStyle=False) + '\n'))
                 elif isinstance(entry.item, Group):
-                    f.write(entry.item.toAdjacencyList().replace('{2S,2T}','2') + '\n')
+                    f.write(entry.item.toAdjacencyList(oldStyle=True).replace('{2S,2T}', '2') + '\n')
                 elif isinstance(entry.item, LogicOr):
                     f.write('{0}\n\n'.format(entry.item).replace('OR{', 'Union {'))
                 elif entry.label[0:7] == 'Others-':
@@ -693,9 +719,6 @@ class Database:
                 else:
                     raise DatabaseError('Unexpected item with label {0} encountered in dictionary while attempting to save.'.format(entry.label))
             
-            def comment(s):
-                "Return the string, with each line prefixed with '// '"
-                return '\n'.join('// '+line if line else '' for line in s.split('\n'))
             if entriesNotInTree:
                 f.write(comment("These entries do not appear in the tree:\n\n"))
             for entry in entriesNotInTree:
@@ -873,13 +896,14 @@ class Database:
         Matching to structure is more strict than to node.  All labels in structure must 
         be found in node.  However the reverse is not true, unless `strict` is set to True.
         
-        Usage: node = either an Entry or a key in the self.entries dictionary which has
-                      a Group or LogicNode as its Entry.item
-               structure = a Group or a Molecule
-               atoms = dictionary of {label: atom} in the structure.  A possible dictionary
-                       is the one produced by structure.getLabeledAtoms()
-               strict = if set to True, ensures that all the node's atomLabels are matched by
-                        in the structure.
+        =================== ========================================================
+        Attribute           Description
+        =================== ========================================================
+        `node`              Either an Entry or a key in the self.entries dictionary which has a Group or LogicNode as its Entry.item
+        `structure`         A Group or a Molecule
+        `atoms`             Dictionary of {label: atom} in the structure.  A possible dictionary is the one produced by structure.getLabeledAtoms()
+        `strict`            If set to ``True``, ensures that all the node's atomLabels are matched by in the structure
+        =================== ========================================================
         """
         if isinstance(node, str): node = self.entries[node]
         group = node.item

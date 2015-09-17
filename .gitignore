@@ -41,6 +41,10 @@ htmlcov/*
 
 # Quantum Mechanics temporary, cache, and result files
 QMfiles/*
+QMscratch/*
 
 # Solver settings file
 rmgpy/solver/settings.pxi
+
+# bin/symmetry
+bin/symmetry

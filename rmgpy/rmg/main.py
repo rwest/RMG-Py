@@ -104,7 +104,7 @@ class RMG:
     `loadRestart`                   ``True`` if restarting a previous job, ``False`` otherwise
     `saveRestartPeriod`             The time period to periodically save a restart file (:class:`Quantity`), or ``None`` for never.
     `units`                         The unit system to use to save output files (currently must be 'si')
-    `drawMolecules`                 ``True`` to draw pictures of the species in the core, ``False`` otherwise
+    `drawMolecules`                 ``True`` to draw pictures of the species and reactions, saving a visualized model in an output HTML file.  ``False`` otherwise
     `generatePlots`                 ``True`` to generate plots of the job execution statistics after each iteration, ``False`` otherwise
     `verboseComments`               ``True`` to keep the verbose comments for database estimates, ``False`` otherwise
     `saveEdgeSpecies`               ``True`` to save chemkin and HTML files of the edge species, ``False`` otherwise
@@ -376,9 +376,10 @@ class RMG:
             else:
                 raise ValueError('Invalid format for wall time; should be HH:MM:SS.')
     
-        # Delete previous HTML file
-        from rmgpy.rmg.output import saveOutputHTML
-        saveOutputHTML(os.path.join(self.outputDirectory, 'output.html'), self.reactionModel, 'core')
+        # Delete previous HTML file if that option was on
+        if self.drawMolecules:
+            from rmgpy.rmg.output import saveOutputHTML
+            saveOutputHTML(os.path.join(self.outputDirectory, 'output.html'), self.reactionModel, 'core')
         
         # Initialize reaction model
         if args.restart:
@@ -415,7 +416,27 @@ class RMG:
                         pass
                     else:
                         raise ForbiddenStructureException("Species constraints forbids input species {0}. Please reformulate constraints, remove the species, or explicitly allow it.".format(spec.label))
-
+            
+            #Check to see if user has input Singlet O2 into their input file or libraries
+            #This constraint is special in that we only want to check it once in the input instead of every time a species is made
+            if 'allowSingletO2' in self.speciesConstraints and self.speciesConstraints['allowSingletO2']:
+                pass
+            else:
+                #Here we get a list of all species that from the user input
+                allInputtedSpecies=[spec for spec in self.initialSpecies]
+                #Because no iterations have taken place, the only things in the core are from seed mechanisms
+                allInputtedSpecies.extend(self.reactionModel.core.species)
+                #Because no iterations have taken place, the only things in the edge are from reaction libraries
+                allInputtedSpecies.extend(self.reactionModel.edge.species)
+                
+                O2Singlet=Molecule().fromSMILES('O=O')
+                for spec in allInputtedSpecies:
+                    if spec.isIsomorphic(O2Singlet):
+                        raise ForbiddenStructureException("""Species constraints forbids input species {0}
+                        RMG expects the triplet form of oxygen for correct usage in reaction families. Please change your input to SMILES='[O][O]'
+                        If you actually want to use the singlet state, set the allowSingletO2=True inside of the Species Constraints block in your input file.
+                        """.format(spec.label))
+                        
             for spec in self.initialSpecies:
                 spec.generateThermoData(self.database, quantumMechanics=self.quantumMechanics)
                 spec.generateTransportData(self.database)
@@ -530,7 +551,7 @@ class RMG:
             try:
                 import psutil
                 process = psutil.Process(os.getpid())
-                rss, vms = process.get_memory_info()
+                rss, vms = process.memory_info()
                 memoryUse.append(rss / 1.0e6)
                 logging.info('    Memory used: %.2f MB' % (memoryUse[-1]))
             except ImportError:
@@ -606,7 +627,7 @@ class RMG:
             try:
                 import psutil
                 process = psutil.Process(os.getpid())
-                rss, vms = process.get_memory_info()
+                rss, vms = process.memory_info()
                 memoryUse.append(rss / 1.0e6)
                 logging.info('    Memory used: %.2f MB' % (memoryUse[-1]))
             except ImportError:
@@ -638,7 +659,8 @@ class RMG:
                 self.reactionModel.addReactionLibraryToOutput(library)
                 
         # Save the current state of the model to HTML files
-        self.saveOutputHTML()
+        if self.drawMolecules:
+            self.saveOutputHTML()
         # Save a Chemkin filew containing the current model
         self.saveChemkinFiles()
         # Save the restart file if desired
@@ -663,11 +685,14 @@ class RMG:
     def getGitCommit(self):
         import subprocess
         from rmgpy import getPath
-        try:
-            return subprocess.check_output(['git', 'log',
-                                            '--format=%H%n%cd', '-1'],
-                                            cwd=getPath()).splitlines()
-        except:
+        if os.path.exists(os.path.join(getPath(),'..','.git')):
+            try:
+                return subprocess.check_output(['git', 'log',
+                                                '--format=%H%n%cd', '-1'],
+                                                cwd=getPath()).splitlines()
+            except:
+                return '', ''
+        else:
             return '', ''
     
     def logHeader(self, level=logging.INFO):
@@ -675,14 +700,14 @@ class RMG:
         Output a header containing identifying information about RMG to the log.
         """
     
-        logging.log(level, '###################################################')
-        logging.log(level, '# RMG-Py - Reaction Mechanism Generator in Python #')
-        logging.log(level, '# Version: Early 2013                             #')
-        logging.log(level, '# Authors: RMG Developers (rmg_dev@mit.edu)       #')
-        logging.log(level, '# P.I.s:   William H. Green (whgreen@mit.edu)     #')
-        logging.log(level, '#          Richard H. West (r.west@neu.edu)       #')
-        logging.log(level, '# Website: http://greengroup.github.com/RMG-Py/   #')
-        logging.log(level, '###################################################\n')
+        logging.log(level, '#########################################################')
+        logging.log(level, '# RMG-Py - Reaction Mechanism Generator in Python       #')
+        logging.log(level, '# Version: 0.1.0                                        #')
+        logging.log(level, '# Authors: RMG Developers (rmg_dev@mit.edu)             #')
+        logging.log(level, '# P.I.s:   William H. Green (whgreen@mit.edu)           #')
+        logging.log(level, '#          Richard H. West (r.west@neu.edu)             #')
+        logging.log(level, '# Website: http://reactionmechanismgenerator.github.io/ #')
+        logging.log(level, '#########################################################\n')
     
         head, date = self.getGitCommit()
         if head != '' and date != '':
@@ -1209,7 +1234,10 @@ def makeProfileGraph(stats_file):
     
     This requires the gprof2dot package available via `pip install gprof2dot`.
     Render the result using the program 'dot' via a command like
-    `dot -Tpdf input.dot -o output.pdf`.
+    `dot -Tps2 input.dot -o output.ps2`.
+    
+    Rendering the ps2 file to pdf requires an external pdf converter
+    `ps2pdf output.ps2` which produces a `output.ps2.pdf` file.
     """
     try:
         from gprof2dot import PstatsParser, DotWriter, SAMPLES, themes
@@ -1267,13 +1295,19 @@ def makeProfileGraph(stats_file):
     output.close()
     
     try:
-        subprocess.check_call(['dot', '-Tpdf', dot_file, '-o', '{0}.pdf'.format(dot_file)])
+        subprocess.check_call(['dot', '-Tps2', dot_file, '-o', '{0}.ps2'.format(dot_file)])
     except subprocess.CalledProcessError:
         logging.error("Error returned by 'dot' when generating graph of the profile statistics.")
-        logging.info("To try it yourself:\n     dot -Tpdf {0} -o {0}.pdf".format(dot_file))
+        logging.info("To try it yourself:\n     dot -Tps2 {0} -o {0}.ps2".format(dot_file))
     except OSError:
         logging.error("Couldn't run 'dot' to create graph of profile statistics. Check graphviz is installed properly and on your path.")
-        logging.info("Once you've got it, try:\n     dot -Tpdf {0} -o {0}.pdf".format(dot_file))
+        logging.info("Once you've got it, try:\n     dot -Tps2 {0} -o {0}.ps2".format(dot_file))
+    
+    try:
+        subprocess.check_call(['ps2pdf', '{0}.ps2'.format(dot_file), '{0}.pdf'.format(dot_file)])
+    except OSError:
+        logging.error("Couldn't run 'ps2pdf' to create pdf graph of profile statistics. Check that ps2pdf converter is installed.")
+        logging.info("Once you've got it, try:\n     pd2pdf {0}.ps2 {0}.pdf".format(dot_file))    
     else:
         logging.info("Graph of profile statistics saved to: \n {0}.pdf".format(dot_file))
 

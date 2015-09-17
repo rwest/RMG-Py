@@ -18,6 +18,7 @@ import rmgpy.molecule
 import symmetry
 import qmdata
 from qmdata import CCLibData
+from rmgpy.molecule import parser
 
 class Geometry:
     """
@@ -48,6 +49,8 @@ class Geometry:
             #: Long, truly unique, ID, such as the augmented InChI.
             self.uniqueIDlong = uniqueIDlong
         
+        # ToDo: why do we copy self.settings.fileStore into self.fileStore ?
+        # (and same for .scratchDirectory)
         if self.settings:
             self.fileStore = self.settings.fileStore
             self.scratchDirectory = self.settings.scratchDirectory
@@ -63,13 +66,18 @@ class Geometry:
             logging.info("Creating scratch directory %s for qm files."%os.path.abspath(self.scratchDirectory))
             os.makedirs(self.scratchDirectory)
 
-    def getFilePath(self, extension):
+    def getFilePath(self, extension, scratch=True):
         """
         Returns the path to the file with the given extension.
         
         The provided extension should include the leading dot.
+        If called with `scratch=False` then it will be in the `fileStore` directory,
+        else `scratch=True` is assumed and it will be in the `scratchDirectory` directory.
         """
-        return os.path.join(self.settings.scratchDirectory, self.uniqueID  + extension)
+        return os.path.join(
+            self.settings.scratchDirectory if scratch else self.settings.fileStore,
+            self.uniqueID + extension
+            )
         
     def getCrudeMolFilePath(self):
         "Returns the path of the crude mol file."
@@ -216,13 +224,19 @@ class QMMolecule:
         self.uniqueID = self.molecule.toAugmentedInChIKey()
         self.uniqueIDlong = self.molecule.toAugmentedInChI()
         
-    def getFilePath(self, extension):
+    def getFilePath(self, extension, scratch=True):
         """
         Returns the path to the file with the given extension.
         
         The provided extension should include the leading dot.
+        If called with `scratch=False` then it will be in the `fileStore` directory,
+        else `scratch=True` is assumed and it will be in the `scratchDirectory` directory.
         """
-        return os.path.join(self.settings.scratchDirectory, self.uniqueID  + extension)
+        #ToDo: this is duplicated in Geometry class. Should be refactored.
+        return os.path.join(
+            self.settings.scratchDirectory if scratch else self.settings.fileStore,
+            self.uniqueID + extension
+            )
         
     @property
     def outputFilePath(self):
@@ -236,7 +250,7 @@ class QMMolecule:
     
     def getThermoFilePath(self):
         "Returns the path the thermo data file."
-        return os.path.join(self.settings.fileStore, self.uniqueID  + '.thermo')
+        return self.getFilePath('.thermo', scratch=False)
     
     @property
     def scriptAttempts(self):
@@ -264,12 +278,7 @@ class QMMolecule:
     def checkPaths(self):
         """
         Check the paths in the settings are OK. Make folders as necessary.
-        """
-        if not os.path.exists(self.settings.RMG_bin_path):
-            raise Exception("RMG-Py 'bin' directory {0} does not exist.".format(self.settings.RMG_bin_path))
-        if not os.path.isdir(self.settings.RMG_bin_path):
-            raise Exception("RMG-Py 'bin' directory {0} is not a directory.".format(self.settings.RMG_bin_path))
-        
+        """        
         self.settings.fileStore = os.path.expandvars(self.settings.fileStore) # to allow things like $HOME or $RMGpy
         self.settings.scratchDirectory = os.path.expandvars(self.settings.scratchDirectory)
         for path in [self.settings.fileStore, self.settings.scratchDirectory]:

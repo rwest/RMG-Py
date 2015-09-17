@@ -115,15 +115,15 @@ def saveEntry(f, entry):
     f.write('    shortDesc = u"""')
     try:
         f.write(entry.shortDesc.encode('utf-8'))
-    except:
-        f.write(entry.shortDesc.strip().encode('ascii', 'ignore'))
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        f.write(entry.shortDesc.strip().encode('ascii', 'replace'))
     f.write('""",\n')
     f.write('    longDesc = \n')
     f.write('u"""\n')
     try:
         f.write(entry.longDesc.strip().encode('utf-8') + "\n")    
-    except:
-        f.write(entry.longDesc.strip().encode('ascii', 'ignore')+ "\n")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        f.write(entry.longDesc.strip().encode('ascii', 'replace') + "\n")
     f.write('""",\n')
 
     f.write(')\n\n')
@@ -755,6 +755,7 @@ class ThermoDatabase(object):
         
         Returns: ThermoData or None
         """
+        import rmgpy.rmg.main
         thermoData = None
         
         #chatelak 11/15/14: modification to introduce liquid phase thermo libraries
@@ -962,7 +963,7 @@ class ThermoDatabase(object):
                 saturatedStruct.removeBond(bond)
                 saturatedStruct.removeAtom(H)
                 atom.incrementRadical()
-            saturatedStruct.updateConnectivityValues()
+            saturatedStruct.update()
             try:
                 self.__addGroupThermoData(thermoData, self.groups['radical'], saturatedStruct, {'*':atom})
             except KeyError:
@@ -992,7 +993,7 @@ class ThermoDatabase(object):
         # For thermo estimation we need the atoms to already be sorted because we
         # iterate over them; if the order changes during the iteration then we
         # will probably not visit the right atoms, and so will get the thermo wrong
-        molecule.sortVertices()
+        molecule.sortAtoms()
 
         if molecule.isRadical(): # radical species
             thermoData = self.estimateRadicalThermoViaHBI(molecule, self.computeGroupAdditivityThermo)
@@ -1021,7 +1022,7 @@ class ThermoDatabase(object):
         # For thermo estimation we need the atoms to already be sorted because we
         # iterate over them; if the order changes during the iteration then we
         # will probably not visit the right atoms, and so will get the thermo wrong
-        molecule.sortVertices()
+        molecule.sortAtoms()
 
         # Create the ThermoData object
         thermoData = ThermoData(

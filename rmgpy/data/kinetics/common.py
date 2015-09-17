@@ -135,6 +135,10 @@ def saveEntry(f, entry):
         f.write('    label = "{0}",\n'.format(entry.label))
 
     if isinstance(entry.item, Reaction):
+        if entry.label != str(entry.item):
+            raise KineticsError("Reactions are now defined solely by their labels, "
+                                                "but reaction {0!s} has label {1!r}".format(
+                                                 entry.item, entry.label))
 #        for i, reactant in enumerate(entry.item.reactants):
 #            if isinstance(reactant, Molecule):
 #                f.write('    reactant{0:d} = \n'.format(i+1))
