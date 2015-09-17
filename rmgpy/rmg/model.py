@@ -1078,7 +1078,7 @@ class CoreEdgeReactionModel:
         """
         self.edge.species.append(spec)
 
-    def prune(self, reactionSystems, toleranceKeepInEdge, maximumEdgeSpecies, minSpcExistIterForPrune):
+    def prune(self, reactionSystems, toleranceKeepInEdge, maximumEdgeSpecies, minSpeciesExistIterationsForPrune):
         """
         Remove species from the model edge based on the simulation results from
         the list of `reactionSystems`.
@@ -1092,7 +1092,7 @@ class CoreEdgeReactionModel:
         # All edge species that have not existed for more than two enlarge
         # iterations are ineligible for pruning
         for spec in self.edge.species:
-            if numCoreSpecies - spec.coreSizeAtCreation <= minSpcExistIterForPrune:
+            if numCoreSpecies - spec.coreSizeAtCreation <= minSpeciesExistIterationsForPrune:
                 ineligibleSpecies.append(spec)
 
         # Get the maximum species rates (and network leak rates)
