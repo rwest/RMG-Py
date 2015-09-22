@@ -188,7 +188,7 @@ class Atom(Vertex):
             return True
     
     def getDescriptor(self):
-        return (self.getAtomConnectivityValue(), self.symbol, self.radicalElectrons, self.lonePairs, self.charge)
+        return (self.number, self.getAtomConnectivityValue(), self.radicalElectrons, self.lonePairs, self.charge)
 
     def getAtomConnectivityValue(self):
         return getVertexConnectivityValue(self)
@@ -711,7 +711,8 @@ class Molecule(Graph):
             if vertex.sortingLabel < 0:
                 self.updateConnectivityValues()
                 break
-        self.atoms.sort(key=lambda a: a.getDescriptor())
+        self.atoms.sort(key=lambda a: a.getDescriptor(), reverse=True)
+        # self.moveHs()
         for index, vertex in enumerate(self.vertices):
             vertex.sortingLabel = index
 
