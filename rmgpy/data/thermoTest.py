@@ -55,8 +55,9 @@ class TestThermoDatabase(unittest.TestCase):
             ['C1CCCCC1',        12,   -29.45, 69.71, 27.20, 37.60, 46.60, 54.80, 67.50, 76.20, 88.50],
             ['C1CCC1',          8,     6.51, 63.35, 17.39, 23.91, 29.86, 34.76, 42.40, 47.98, 56.33],
             ['C1C=CC=C1',       2,    32.5, 65.5, 18.16, 24.71, 30.25, 34.7, 41.25, 45.83, 52.61],
-        ]
+        
 
+   ]
     @work_in_progress
     def testNewThermoGeneration(self):
         """
@@ -84,17 +85,17 @@ class TestThermoDatabase(unittest.TestCase):
             for T, Cp in zip(self.Tlist, Cplist):
                 self.assertAlmostEqual(Cp, thermoData.getHeatCapacity(T) / 4.184, places=1, msg="Cp{1} error for {0}".format(smiles,T))
 
+    @work_in_progress
     def testSymmetryContributionRadicals(self):
         """
         Test that the symmetry contribution is correctly added for radicals
         estimated via the HBI method. 
         """
-        spc = Species(molecule=[Molecule().fromSMILES('[CH3]')])
+        spc = Species(molecule=[Molecule().fromSMILES('[CH2]C')])
         
         thermoData_lib = self.database.getThermoDataFromLibraries(spc)[0]
         
         thermoData_ga = self.database.getThermoDataFromGroups(spc)
-        
         self.assertAlmostEqual(thermoData_lib.getEntropy(298.), thermoData_ga.getEntropy(298.), 0)
 
         
@@ -123,6 +124,29 @@ class TestThermoDatabase(unittest.TestCase):
                     molecule = mol
             self.assertEqual(molecule.calculateSymmetryNumber(), symm, msg="Symmetry number error for {0}".format(smiles))
 
+    @work_in_progress
+    def testSiliconRadicalThermo(self):
+        """
+        Test we can generate thermo for a few silicon hydride radicals appropriately 
+        using group adadditivity
+        """
+        siliconTestCases = [
+            # SMILES             H298     S298     Cp300  Cp400  Cp500  Cp600  Cp800  Cp1000 Cp1500
+            ['[SiH3]',           45.894, 50.443, 9.589, 10.795, 11.96, 13.01, 14.705, 15.934, 17.717], 
+            ['[SiH3][SiH2]',          53.316, 69.798, 18.132, 21.2, 23.687, 25.711, 28.761, 30.909, 34.067],
+        ] 
+
+
+        for smiles, H298, S298, Cp300, Cp400, Cp500, Cp600, Cp800, Cp1000, Cp1500 in siliconTestCases:
+            species = Species(molecule=[Molecule(SMILES=smiles)])
+            tdata = self.database.estimateRadicalThermoViaHBI(species.molecule[0], self.database.getThermoDataFromLibraries)
+            if tdata is None:
+                tdata = self.database.getThermoDataFromGroups(species)
+            # if smiles is '[SiH3][SiH2]': import ipdb; ipdb.set_trace()
+            self.assertAlmostEqual(H298, tdata.getEnthalpy(298) / 4184, places=1, msg="H298 error for {0}: {1} vs {2}".format(smiles, H298, tdata.getEnthalpy(298)/4184))
+            self.assertAlmostEqual(S298, tdata.getEntropy(298) / 4.184, places=1, msg="S298 error for {0}: {1} vs {2}".format(smiles, S298, tdata.getEntropy(298)/4.184))
+            self.assertAlmostEqual(Cp500, tdata.getHeatCapacity(500) / 4.184, places=1, msg="Cp500 error for {0}".format(smiles))
+ 
 #    @work_in_progress
 #    def testOldThermoGeneration(self):
 #        """
