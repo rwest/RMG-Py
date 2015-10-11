@@ -806,19 +806,19 @@ class Group(Graph):
                 isSulfur   = atomType.equivalent(sulfur)
                 isChlorine   = atomType.equivalent(chlorine)
                 if isCarbon and not isNitrogen and not isOxygen and not isSilicon and not isSulfur and not isFluorine and not isChlorine:
-                   self.carbonCount += 1
+                    self.carbonCount += 1
                 elif isNitrogen and not isCarbon and not isOxygen and not isSilicon and not isSulfur and not isFluorine and not isChlorine:
                     self.nitrogenCount += 1
                 elif isOxygen and not isCarbon and not isNitrogen and not isSilicon and not isSulfur and not isFluorine and not isChlorine:
                     self.oxygenCount += 1
                 elif isFluorine and not isCarbon and not isNitrogen and not isOxygen and not isSulfur and not isChlorine and not isSilicon:
-                	self.fluorineCount += 1    
-                elif isSilicon and not isCarbon and not isNitrogen and not isOxygen and not isSulfur:
+                    self.fluorineCount += 1    
+                elif isSilicon and not isCarbon and not isNitrogen and not isOxygen and not isSulfur and not isFluorine and not isChlorine:
                     self.siliconCount += 1
-                elif isSulfur and not isCarbon and not isNitrogen and not isOxygen and not isSilicon:
+                elif isSulfur and not isCarbon and not isNitrogen and not isOxygen and not isSilicon and not isFluorine and not isChlorine:
                     self.sulfurCount += 1
-                elif isChlorine and not isCarbon and not isNitrogen and not isSulfur and not isOxygen and not isFluorine:
-                	self.chlorineCount += 1    
+                elif isChlorine and not isCarbon and not isNitrogen and not isSulfur and not isOxygen and not isFluorine and not isSilicon:
+                    self.chlorineCount += 1    
             if len(atom.radicalElectrons) == 1:
                 radical = atom.radicalElectrons[0]
                 self.radicalCount += radical
