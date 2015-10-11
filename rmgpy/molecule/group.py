@@ -93,9 +93,7 @@ class GroupAtom(Vertex):
         """
         d = {
             'edges': self.edges,
-            'connectivity1': self.connectivity1,
-            'connectivity2': self.connectivity2,
-            'connectivity3': self.connectivity3,
+            'connectivity': self.connectivity,
             'sortingLabel': self.sortingLabel,
         }
         atomType = self.atomType
@@ -108,9 +106,7 @@ class GroupAtom(Vertex):
         A helper function used when unpickling an object.
         """
         self.edges = d['edges']
-        self.connectivity1 = d['connectivity1']
-        self.connectivity2 = d['connectivity2']
-        self.connectivity3 = d['connectivity3']
+        self.connectivity = d['connectivity']
         self.sortingLabel = d['sortingLabel']
 
     def __str__(self):
@@ -540,9 +536,8 @@ class Group(Graph):
     def __init__(self, atoms=None):
         Graph.__init__(self, atoms)
         self.multiplicity = []
-        self.updateConnectivityValues()
-        self.updateFingerprint()
-    
+        self.update()
+
     def __reduce__(self):
         """
         A helper function used when pickling an object.
@@ -626,6 +621,12 @@ class Group(Graph):
         g = Graph.copy(self, deep)
         other = Group(g.vertices)
         return other
+
+    def update(self):
+
+        self.updateConnectivityValues()
+        self.updateFingerprint()
+
 
     def merge(self, other):
         """
@@ -735,8 +736,7 @@ class Group(Graph):
         self.vertices, multiplicity = fromAdjacencyList(adjlist, group=True)
         if multiplicity is not None:
             self.multiplicity = multiplicity
-        self.updateConnectivityValues()
-        self.updateFingerprint()
+        self.update()
         return self
         
     def fromXYZ(self, atomicNums, coordinates):
@@ -769,23 +769,26 @@ class Group(Graph):
         from .adjlist import toAdjacencyList
         return toAdjacencyList(self.vertices, multiplicity=self.multiplicity, label='', group=True)
 
+
     def updateFingerprint(self):
         """
         Update the molecular fingerprint used to accelerate the subgraph
         isomorphism checks.
         """
         cython.declare(atom=GroupAtom, atomType=AtomType)
-        cython.declare(carbon=AtomType, nitrogen=AtomType, oxygen=AtomType, sulfur=AtomType)
-        cython.declare(isCarbon=cython.bint, isNitrogen=cython.bint, isOxygen=cython.bint, isSulfur=cython.bint, radical=cython.int)
+        cython.declare(carbon=AtomType, nitrogen=AtomType, oxygen=AtomType, silicon=AtomType, sulfur=AtomType)
+        cython.declare(isCarbon=cython.bint, isNitrogen=cython.bint, isOxygen=cython.bint, isSilicon=cython.bint, isSulfur=cython.bint, radical=cython.int)
         
         carbon   = atomTypes['C']
         nitrogen = atomTypes['N']
         oxygen   = atomTypes['O']
+        silicon  = atomTypes['Si']
         sulfur   = atomTypes['S']
         
         self.carbonCount   = 0
         self.nitrogenCount = 0
         self.oxygenCount   = 0
+        self.siliconCount   = 0
         self.sulfurCount   = 0
         self.radicalCount  = 0
         for atom in self.vertices:
@@ -794,14 +797,17 @@ class Group(Graph):
                 isCarbon   = atomType.equivalent(carbon)
                 isNitrogen = atomType.equivalent(nitrogen)
                 isOxygen   = atomType.equivalent(oxygen)
+                isSilicon  = atomType.equivalent(silicon)
                 isSulfur   = atomType.equivalent(sulfur)
-                if isCarbon and not isNitrogen and not isOxygen and not isSulfur:
-                    self.carbonCount += 1
-                elif isNitrogen and not isCarbon and not isOxygen and not isSulfur:
+                if isCarbon and not isNitrogen and not isOxygen and not isSilicon and not isSulfur:
+                   self.carbonCount += 1
+                elif isNitrogen and not isCarbon and not isOxygen and not isSilicon and not isSulfur:
                     self.nitrogenCount += 1
-                elif isOxygen and not isCarbon and not isNitrogen and not isSulfur:
+                elif isOxygen and not isCarbon and not isNitrogen and not isSilicon and not isSulfur:
                     self.oxygenCount += 1
-                elif isSulfur and not isCarbon and not isNitrogen and not isOxygen:
+                elif isSilicon and not isCarbon and not isNitrogen and not isOxygen and not isSulfur:
+                    self.siliconCount += 1
+                elif isSulfur and not isCarbon and not isNitrogen and not isOxygen and not isSilicon:
                     self.sulfurCount += 1
             if len(atom.radicalElectrons) == 1:
                 radical = atom.radicalElectrons[0]

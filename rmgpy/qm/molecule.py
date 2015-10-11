@@ -21,6 +21,7 @@ import rmgpy.molecule
 import symmetry
 import qmdata
 from qmdata import CCLibData
+from rmgpy.molecule import parser
 
 class RDKitFailedError(Exception):
     """For when RDkit failed. try the next reaction """
@@ -70,13 +71,18 @@ class Geometry:
             logging.info("Creating scratch directory %s for qm files."%os.path.abspath(self.scratchDirectory))
             os.makedirs(self.scratchDirectory)
 
-    def getFilePath(self, extension):
+    def getFilePath(self, extension, scratch=True):
         """
         Returns the path to the file with the given extension.
 
         The provided extension should include the leading dot.
+        If called with `scratch=False` then it will be in the `fileStore` directory,
+        else `scratch=True` is assumed and it will be in the `scratchDirectory` directory.
         """
-        return os.path.join(self.settings.scratchDirectory, self.uniqueID  + extension)
+        return os.path.join(
+            self.settings.scratchDirectory if scratch else self.settings.fileStore,
+            self.uniqueID + extension
+            )
 
     def getCrudeMolFilePath(self):
         "Returns the path of the crude mol file."
@@ -367,13 +373,19 @@ class QMMolecule:
         self.uniqueID = self.molecule.toSMILES()
         self.uniqueIDlong = self.molecule.toAugmentedInChI()
 
-    def getFilePath(self, extension):
+    def getFilePath(self, extension, scratch=True):
         """
         Returns the path to the file with the given extension.
 
         The provided extension should include the leading dot.
+        If called with `scratch=False` then it will be in the `fileStore` directory,
+        else `scratch=True` is assumed and it will be in the `scratchDirectory` directory.
         """
-        return os.path.join(self.settings.scratchDirectory, self.uniqueID  + extension)
+        #ToDo: this is duplicated in Geometry class. Should be refactored.
+        return os.path.join(
+            self.settings.scratchDirectory if scratch else self.settings.fileStore,
+            self.uniqueID + extension
+            )
 
     @property
     def outputFilePath(self):
@@ -387,7 +399,7 @@ class QMMolecule:
 
     def getThermoFilePath(self):
         "Returns the path the thermo data file."
-        return os.path.join(self.settings.fileStore, self.uniqueID  + '.thermo')
+        return self.getFilePath('.thermo', scratch=False)
 
     @property
     def scriptAttempts(self):

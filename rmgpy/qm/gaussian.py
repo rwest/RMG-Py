@@ -212,7 +212,7 @@ class GaussianMol(QMMolecule, Gaussian):
         """
         Return the top keywords for attempt number `attempt`.
 
-        NB. `attempt`s begin at 1, not 0.
+        NB. `attempt` begins at 1, not 0.
         """
         assert attempt <= self.maxAttempts
         if attempt > self.scriptAttempts:
@@ -222,7 +222,7 @@ class GaussianMol(QMMolecule, Gaussian):
     def createInputFile(self, attempt):
         """
         Using the :class:`Geometry` object, write the input file
-        for the `attmept`th attempt.
+        for the `attempt`.
         """
         molfile = self.getMolFilePathForCalculation(attempt)
         atomline = re.compile('\s*([\- ][0-9.]+\s+[\-0-9.]+\s+[\-0-9.]+)\s+([A-Za-z]+)')

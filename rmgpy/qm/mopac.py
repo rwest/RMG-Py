@@ -3,6 +3,7 @@ import re
 import external.cclib as cclib
 import logging
 from subprocess import Popen
+import distutils.spawn
 import time
 import math
 import numpy
@@ -15,6 +16,7 @@ from reaction import QMReaction
 from rmgpy.data.base import Entry
 from rmgpy.data.kinetics import saveEntry
 from rmgpy.data.kinetics.transitionstates import DistanceData
+
 
 class Mopac:
     """
@@ -31,9 +33,14 @@ class Mopac:
         executablePath = os.path.join(mopacEnv , 'MOPAC2012.exe')
     elif os.path.exists(os.path.join(mopacEnv , 'MOPAC2009.exe')):
         executablePath = os.path.join(mopacEnv , 'MOPAC2009.exe')
-    else:
-        executablePath = os.path.join(mopacEnv , '(MOPAC 2009 or 2012)')
-    
+    elif os.path.exists(os.path.join(mopacEnv , 'mopac')):
+        executablePath = os.path.join(mopacEnv , 'mopac')
+    else:      
+        executablePath = distutils.spawn.find_executable('mopac') or \
+                         distutils.spawn.find_executable('MOPAC2009.exe') or \
+                         distutils.spawn.find_executable('MOPAC2012.exe') or \
+                         os.path.join(mopacEnv , '(MOPAC 2009 or 2012)')
+
     usePolar = False#use polar keyword in MOPAC
     
     "Keywords for the multiplicity"
@@ -224,7 +231,7 @@ class MopacMol(QMMolecule, Mopac):
     def createInputFile(self, attempt):
         """
         Using the :class:`Geometry` object, write the input file
-        for the `attmept`th attempt.
+        for the `attempt`.
         """
         
         molfile = self.getMolFilePathForCalculation(attempt) 
@@ -293,7 +300,7 @@ class MopacMolPMn(MopacMol):
         """
         Return the top, bottom, and polar keywords for attempt number `attempt`.
         
-        NB. `attempt`s begin at 1, not 0.
+        NB. `attempt` begins at 1, not 0.
         """
         assert attempt <= self.maxAttempts
         

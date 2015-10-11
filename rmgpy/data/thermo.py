@@ -115,15 +115,21 @@ def saveEntry(f, entry):
     f.write('    shortDesc = u"""')
     try:
         f.write(entry.shortDesc.encode('utf-8'))
-    except:
-        f.write(entry.shortDesc.strip().encode('ascii', 'ignore'))
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        f.write(entry.shortDesc.strip().encode('ascii', 'replace'))
     f.write('""",\n')
     f.write('    longDesc = \n')
     f.write('u"""\n')
     try:
+<<<<<<< HEAD
         f.write(entry.longDesc.strip().encode('utf-8') + "\n")
     except:
         f.write(entry.longDesc.strip().encode('ascii', 'ignore')+ "\n")
+=======
+        f.write(entry.longDesc.strip().encode('utf-8') + "\n")    
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        f.write(entry.longDesc.strip().encode('ascii', 'replace') + "\n")
+>>>>>>> belinda/silicon-hydrides-stable
     f.write('""",\n')
 
     f.write(')\n\n')
@@ -441,8 +447,8 @@ class ThermoDatabase(object):
         points to the top-level folder of the thermo depository.
         """
         if not os.path.exists(path): os.mkdir(path)
-        self.depository['stable'].save(os.path.join(path, 'stable.py'))
-        self.depository['radical'].save(os.path.join(path, 'radical.py'))
+        for depo in self.depository.keys():
+            self.depository[depo].save(os.path.join(path, depo+'.py'))
 
     def saveLibraries(self, path):
         """
@@ -459,6 +465,7 @@ class ThermoDatabase(object):
         points to the top-level folder of the thermo groups.
         """
         if not os.path.exists(path): os.mkdir(path)
+<<<<<<< HEAD
         self.groups['group'].save(os.path.join(path, 'group.py'))
         self.groups['gauche'].save(os.path.join(path, 'gauche.py'))
         self.groups['int15'].save(os.path.join(path, 'int15.py'))
@@ -467,6 +474,11 @@ class ThermoDatabase(object):
         self.groups['polycyclic'].save(os.path.join(path, 'polycyclic.py'))
         self.groups['other'].save(os.path.join(path, 'other.py'))
 
+=======
+        for group in self.groups.keys():
+            self.groups[group].save(os.path.join(path, group+'.py'))
+            
+>>>>>>> belinda/silicon-hydrides-stable
     def loadOld(self, path):
         """
         Load the old RMG thermo database from the given `path` on disk, where
@@ -760,6 +772,7 @@ class ThermoDatabase(object):
 
         Returns: ThermoData or None
         """
+        import rmgpy.rmg.main
         thermoData = None
 
         #chatelak 11/15/14: modification to introduce liquid phase thermo libraries
@@ -967,7 +980,7 @@ class ThermoDatabase(object):
                 saturatedStruct.removeBond(bond)
                 saturatedStruct.removeAtom(H)
                 atom.incrementRadical()
-            saturatedStruct.updateConnectivityValues()
+            saturatedStruct.update()
             try:
                 self.__addGroupThermoData(thermoData, self.groups['radical'], saturatedStruct, {'*':atom})
             except KeyError:
@@ -997,7 +1010,7 @@ class ThermoDatabase(object):
         # For thermo estimation we need the atoms to already be sorted because we
         # iterate over them; if the order changes during the iteration then we
         # will probably not visit the right atoms, and so will get the thermo wrong
-        molecule.sortVertices()
+        molecule.sortAtoms()
 
         if molecule.isRadical(): # radical species
             thermoData = self.estimateRadicalThermoViaHBI(molecule, self.computeGroupAdditivityThermo)
@@ -1026,7 +1039,7 @@ class ThermoDatabase(object):
         # For thermo estimation we need the atoms to already be sorted because we
         # iterate over them; if the order changes during the iteration then we
         # will probably not visit the right atoms, and so will get the thermo wrong
-        molecule.sortVertices()
+        molecule.sortAtoms()
 
         # Create the ThermoData object
         thermoData = ThermoData(
@@ -1127,7 +1140,7 @@ class ThermoDatabase(object):
         # library, in which case we need to fall up the tree until we find an
         # ancestor that has an entry in the library
         node = node0
-        while node.data is None and node is not None:
+        while node.data is None:
             node = node.parent
         if node is None:
             raise DatabaseError('Unable to determine thermo parameters for {0}: no library entries for {1} or any of its ancestors.'.format(molecule, node0) )

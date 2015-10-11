@@ -9,7 +9,8 @@ The instructions listed below have been confirmed on a fresh Ubuntu 12.04 instal
 
 * Install compilers and libraries: ::
 
-	sudo apt-get install git g++ gfortran python-dev liblapack-dev python-openbabel python-setuptools python-pip 
+	sudo apt-get install git g++ gfortran python-dev liblapack-dev
+	sudo apt-get install python-openbabel python-setuptools python-pip
 
 * After creating a `Github account <https://github.com/signup/free>`_, generate your public key: ::
 
@@ -28,8 +29,8 @@ The instructions listed below have been confirmed on a fresh Ubuntu 12.04 instal
 	sudo pip install scipy cython nose matplotlib quantities guppy sphinx psutil xlwt 
 	
 	cd ~
-	git clone https://github.com/GreenGroup/PyDAS.git
-	git clone https://github.com/GreenGroup/PyDQED.git
+	git clone https://github.com/ReactionMechanismGenerator/PyDAS.git
+	git clone https://github.com/ReactionMechanismGenerator/PyDQED.git
 	cd PyDAS; make F77=gfortran; sudo make install; cd ..
 	cd PyDQED; make F77=gfortran; sudo make install; cd ..
 
@@ -39,12 +40,13 @@ The instructions listed below have been confirmed on a fresh Ubuntu 12.04 instal
   Be sure to **build it with InChI support.** Here's a synopsis: ::
   
 	cd ~
-	sudo apt-get install flex bison build-essential python-numpy cmake python-dev sqlite3 libsqlite3-dev libboost-dev libboost-python-dev libboost-regex-dev
+	sudo apt-get install flex bison build-essential python-numpy cmake python-dev sqlite3
+	sudo apt-get install libsqlite3-dev libboost-dev libboost-python-dev libboost-regex-dev
 	git clone https://github.com/rdkit/rdkit.git
 	cd rdkit
 	export RDBASE=`pwd`
-  	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$RDBASE/lib
-  	export PYTHONPATH=$PYTHONPATH:$RDBASE
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$RDBASE/lib
+	export PYTHONPATH=$PYTHONPATH:$RDBASE
 	cd External/INCHI-API
 	./download-inchi.sh
 	cd ../../
@@ -63,11 +65,11 @@ The instructions listed below have been confirmed on a fresh Ubuntu 12.04 instal
 * Install RMG-Py: ::
 
 	cd ~
-	git clone https://github.com/GreenGroup/RMG-database.git
-	git clone https://github.com/GreenGroup/RMG-Py.git
+	git clone https://github.com/ReactionMechanismGenerator/RMG-database.git
+	git clone https://github.com/ReactionMechanismGenerator/RMG-Py.git
 	sudo pip install -r RMG-Py/requirements.txt
 	cd RMG-Py
-    make
+	make
 
 * Run an example: ::
 
@@ -83,7 +85,7 @@ The instructions listed below have been confirmed on a fresh Ubuntu 12.04 instal
 
 .. _compile_sensitivity:
 
-* Compiling RMG-Py with Sensitivity Analysis: ::
+* Compiling RMG-Py with Sensitivity Analysis: 
 
   Running sensitivity analysis in RMG-Py requires the prerequisite DASPK solver and DASPK compiled wrapper in PyDAS.  
   To do so first compile daspk in PyDAS and agree to download the daspk31.tgz file when prompted. ::

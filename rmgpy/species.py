@@ -86,9 +86,7 @@ class Species(object):
     'props'                 A generic 'properties' dictionary to store user-defined flags
     ======================= ====================================================
 
-    note::
-    
-        :class:`rmg.model.Species` inherits from this class, and adds some extra methods.
+    note: :class:`rmg.model.Species` inherits from this class, and adds some extra methods.
     """
 
     def __init__(self, index=-1, label='', thermo=None, conformer=None, 
@@ -129,7 +127,7 @@ class Species(object):
         if self.label != -1: string += 'label="{0}", '.format(self.label)
         if self.thermo is not None: string += 'thermo={0!r}, '.format(self.thermo)
         if self.conformer is not None: string += 'conformer={0!r}, '.format(self.conformer)
-        if len(self.molecule) > 0: string += 'molecule=[{0!r}], '.format(self.molecule[0])
+        if len(self.molecule) > 0: string += 'molecule={0!r}, '.format(self.molecule)
         if self.transportData is not None: string += 'transportData={0!r}, '.format(self.transportData)
         if not self.reactive: string += 'reactive={0}, '.format(self.reactive)
         if self.molecularWeight is not None: string += 'molecularWeight={0!r}, '.format(self.molecularWeight)

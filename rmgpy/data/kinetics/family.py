@@ -282,7 +282,7 @@ class ReactionRecipe:
             else:
                 raise InvalidActionError('Unknown action "' + action[0] + '" encountered.')
 
-        struct.updateConnectivityValues()
+        struct.update()
 
     def applyForward(self, struct, unique=True):
         """
@@ -930,15 +930,13 @@ class KineticsFamily(Database):
             assert isinstance(entry.data, Arrhenius)
             data = deepcopy(entry.data)
             data.changeT0(1)
-            
             # Estimate the thermo for the reactants and products
             # trainingSet=True used later to does not allow species to match a liquid phase library and get corrected thermo which will affect reverse rate calculation
-            item = Reaction(reactants=[m.molecule[0].copy(deep=True) for m in entry.item.reactants], products=[m.molecule[0].copy(deep=True) for m in entry.item.products])
-            item.reactants = [Species(molecule=[m]) for m in item.reactants]
+            item = Reaction(reactants=[Species(molecule=[m.molecule[0].copy(deep=True)], label=m.label) for m in entry.item.reactants],
+                             products=[Species(molecule=[m.molecule[0].copy(deep=True)], label=m.label) for m in entry.item.products])
             for reactant in item.reactants:
                 reactant.generateResonanceIsomers()
                 reactant.thermo = thermoDatabase.getThermoData(reactant, trainingSet=True) 
-            item.products = [Species(molecule=[m]) for m in item.products]
             for product in item.products:
                 product.generateResonanceIsomers()
                 product.thermo = thermoDatabase.getThermoData(product,trainingSet=True)
@@ -1032,7 +1030,7 @@ class KineticsFamily(Database):
                     identicalCenterCounter += 1
                     atom.label = '*' + str(identicalCenterCounter)
             if identicalCenterCounter != 2:
-                raise Exception('Unable to change labels from "*" to "*1" and "*2" for reaction family {0}.'.format(label))
+                raise KineticsError('Unable to change labels from "*" to "*1" and "*2" for reaction family {0}.'.format(label))
 
         if getTS:
             transitionStateStructure = list()
@@ -1124,8 +1122,7 @@ class KineticsFamily(Database):
         # If product structures are Molecule objects, update their atom types
         for struct in productStructures:
             if isinstance(struct, Molecule):
-                struct.updateAtomTypes()
-                struct.updateMultiplicity()
+                struct.update()
 
         # Return the product structures
         if getTS:
@@ -1269,9 +1266,10 @@ class KineticsFamily(Database):
         `reactants`, which should be either single :class:`Molecule` objects
         or lists of same. Does not estimate the kinetics of these reactions
         at this time. Returns a list of :class:`TemplateReaction` objects
-        using :class:`Species` objects for both reactants and products. The
-        reactions are constructed such that the forward direction is consistent
-        with the template of this reaction family.
+        using :class:`Species` objects for both reactants and products
+        (but does not generate resonance isomers of these Species.)
+        The reactions are constructed such that the forward direction is
+        consistent with the template of this reaction family.
         """
         reactionList = []
         
@@ -1322,7 +1320,9 @@ class KineticsFamily(Database):
                 logging.error(reactant)
             for product in reaction.products:
                 logging.error(product)
-            raise Exception('Unable to calculate degeneracy for reaction {0} in reaction family {1}.'.format(reaction, self.label))
+            raise KineticsError(('Unable to calculate degeneracy for reaction {0} '
+                                 'in reaction family {1}. Expected 1 reaction '
+                                 'but generated {2}').format(reaction, self.label, len(reactions)))
         return reactions[0].degeneracy
         
     def __generateReactions(self, reactants, products=None, forward=True, failsSpeciesConstraints=None):
@@ -1579,6 +1579,28 @@ class KineticsFamily(Database):
                     pairs.append([reaction.reactants[1],reaction.products[0]])
                 else:
                     error = True
+        elif self.label.lower() == 'h2_transfer':
+            # Hardcoding for H2 transfer: pair the reactant containing
+            # *1 with the product containing *4 and vice versa
+            assert len(reaction.reactants) == len(reaction.products) == 2
+            if reaction.reactants[0].containsLabeledAtom('*1'):
+                if reaction.products[0].containsLabeledAtom('*4'):
+                    pairs.append([reaction.reactants[0],reaction.products[0]])
+                    pairs.append([reaction.reactants[1],reaction.products[1]])
+                elif reaction.products[1].containsLabeledAtom('*4'):
+                    pairs.append([reaction.reactants[0],reaction.products[1]])
+                    pairs.append([reaction.reactants[1],reaction.products[0]])
+                else:
+                    error = True
+            elif reaction.reactants[1].containsLabeledAtom('*1'):
+                if reaction.products[1].containsLabeledAtom('*4'):
+                    pairs.append([reaction.reactants[0],reaction.products[0]])
+                    pairs.append([reaction.reactants[1],reaction.products[1]])
+                elif reaction.products[0].containsLabeledAtom('*4'):
+                    pairs.append([reaction.reactants[0],reaction.products[1]])
+                    pairs.append([reaction.reactants[1],reaction.products[0]])
+                else:
+                    error = True
         elif self.label.lower() == 'disproportionation':
             # Hardcoding for disproportionation: pair the reactant containing
             # *1 with the product containing *1
@@ -1708,8 +1730,13 @@ class KineticsFamily(Database):
                     kineticsList.append([kinetics, depository, entry, isForward])
         
         # If estimator type of rate rules or group additivity is given, retrieve the kinetics. 
-        if estimator:        
-            kinetics, entry = self.getKineticsForTemplate(template, degeneracy, method=estimator)
+        if estimator:
+            try:
+                kinetics, entry = self.getKineticsForTemplate(template, degeneracy, method=estimator)
+            except Exception:
+                logging.error("Error getting kinetics for reaction {0!s}.\n{0!r}".format(reaction))
+                raise
+
             if kinetics:
                 if not returnAllKinetics:
                     return kinetics, estimator, entry, True
