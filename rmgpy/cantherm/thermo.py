@@ -170,7 +170,7 @@ class ThermoJob:
             poly_high = thermo.polynomials[1]
         
             # Determine the number of each type of element in the molecule
-            elements = ['C','H','N','O', 'Si']; elementCounts = [0,0,0,0]
+            elements = ['C','H','N','O','F','Cl', 'Si']; elementCounts = [0,0,0,0,0,0,0]
 
             # Remove elements with zero count
             index = 2
