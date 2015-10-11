@@ -86,6 +86,9 @@ class QMSettings():
             if not os.path.exists(symmetryPath):
                 symmetryPath = 'symmetry'
         self.symmetryPath = symmetryPath
+        
+        RMGpy_path = os.getenv('RMGpy') or os.path.normpath(os.path.join(rmgpy.getPath(),'..'))
+        self.RMG_bin_path = os.path.join(RMGpy_path, 'bin')
 
     def checkAllSet(self):
         """
