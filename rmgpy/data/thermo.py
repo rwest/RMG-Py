@@ -121,15 +121,9 @@ def saveEntry(f, entry):
     f.write('    longDesc = \n')
     f.write('u"""\n')
     try:
-<<<<<<< HEAD
-        f.write(entry.longDesc.strip().encode('utf-8') + "\n")
-    except:
-        f.write(entry.longDesc.strip().encode('ascii', 'ignore')+ "\n")
-=======
         f.write(entry.longDesc.strip().encode('utf-8') + "\n")    
     except (UnicodeEncodeError, UnicodeDecodeError):
         f.write(entry.longDesc.strip().encode('ascii', 'replace') + "\n")
->>>>>>> belinda/silicon-hydrides-stable
     f.write('""",\n')
 
     f.write(')\n\n')
@@ -465,20 +459,9 @@ class ThermoDatabase(object):
         points to the top-level folder of the thermo groups.
         """
         if not os.path.exists(path): os.mkdir(path)
-<<<<<<< HEAD
-        self.groups['group'].save(os.path.join(path, 'group.py'))
-        self.groups['gauche'].save(os.path.join(path, 'gauche.py'))
-        self.groups['int15'].save(os.path.join(path, 'int15.py'))
-        self.groups['ring'].save(os.path.join(path, 'ring.py'))
-        self.groups['radical'].save(os.path.join(path, 'radical.py'))
-        self.groups['polycyclic'].save(os.path.join(path, 'polycyclic.py'))
-        self.groups['other'].save(os.path.join(path, 'other.py'))
-
-=======
         for group in self.groups.keys():
             self.groups[group].save(os.path.join(path, group+'.py'))
             
->>>>>>> belinda/silicon-hydrides-stable
     def loadOld(self, path):
         """
         Load the old RMG thermo database from the given `path` on disk, where
