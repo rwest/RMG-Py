@@ -260,7 +260,7 @@ class GaussianMol(QMMolecule, Gaussian):
 
         if self.verifyOutputFile():
             logging.info("Found a successful output file already; using that.")
-            source = "QM {0} result file found from previous run.".format(self.__class__.__name__)
+            source = "QM {0} calculation found from previous run.".format(self.__class__.__name__)
         else:
             self.createGeometry()
             success = False
