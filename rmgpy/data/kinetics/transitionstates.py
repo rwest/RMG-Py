@@ -197,7 +197,10 @@ class TransitionStates(Database):
         # of the second one so we can independently manipulate both of them 
         # This is for the case where A + A --> products
         if len(reactants) == 2 and reactants[0] == reactants[1]:
-            reactants[1] = reactants[1].copy(deep=True)
+            if isinstance(reactants[1], list): # Resonance isomers
+                reactants[1] = [molecule.copy(deep=True) for molecule in reactants[1]]
+            else:
+                reactants[1] = reactants[1].copy(deep=True)
         
         reactionList = []
         reactionList.extend(families.generateReactions(reactants, **options))
