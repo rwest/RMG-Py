@@ -193,6 +193,9 @@ class Gaussian:
             output = [numProc] + output
         if bottomKeys:
             output = output + [bottomKeys]
+        
+        if 'gen' in top_keys:
+            output = output + ['@/scratch/westgroup/mg3s.gbs']
 
         input_string = '\n'.join(output)
 
@@ -379,24 +382,24 @@ class GaussianMolM062X(GaussianMol):
     #: Keywords that will be added at the top of the qm input file
     keywords = [
                 # The combinations of keywords were derived by Greg Magoon for pm3. For now, we assume similar ones will work for pm6:
-               "# m062x/6-311+g(2df,2p) opt=(verytight,gdiis) freq IOP(2/16=3)",
-               "# m062x/6-311+g(2df,2p) opt=(verytight,gdiis) freq IOP(2/16=3) IOP(4/21=2)",
-               "# m062x/6-311+g(2df,2p) opt=(verytight,calcfc,maxcyc=200) freq IOP(2/16=3) nosymm" ,
-               "# m062x/6-311+g(2df,2p) opt=(verytight,calcfc,maxcyc=200) freq=numerical IOP(2/16=3) nosymm",
-               "# m062x/6-311+g(2df,2p) opt=(verytight,gdiis,small) freq IOP(2/16=3)",
-               "# m062x/6-311+g(2df,2p) opt=(verytight,nolinear,calcfc,small) freq IOP(2/16=3)",
-               "# m062x/6-311+g(2df,2p) opt=(verytight,gdiis,maxcyc=200) freq=numerical IOP(2/16=3)",
-               "# m062x/6-311+g(2df,2p) opt=tight freq IOP(2/16=3)",
-               "# m062x/6-311+g(2df,2p) opt=tight freq=numerical IOP(2/16=3)",
-               "# m062x/6-311+g(2df,2p) opt=(tight,nolinear,calcfc,small,maxcyc=200) freq IOP(2/16=3)",
-               "# m062x/6-311+g(2df,2p) opt freq IOP(2/16=3)",
-               "# m062x/6-311+g(2df,2p) opt=(verytight,gdiis) freq=numerical IOP(2/16=3) IOP(4/21=200)",
-               "# m062x/6-311+g(2df,2p) opt=(calcfc,verytight,newton,notrustupdate,small,maxcyc=100,maxstep=100) freq=(numerical,step=10) IOP(2/16=3) nosymm",
-               "# m062x/6-311+g(2df,2p) opt=(tight,gdiis,small,maxcyc=200,maxstep=100) freq=numerical IOP(2/16=3) nosymm",
-               "# m062x/6-311+g(2df,2p) opt=(verytight,gdiis,calcall) IOP(2/16=3)",
-               "# m062x/6-311+g(2df,2p) opt=(verytight,gdiis,calcall,small,maxcyc=200) IOP(2/16=3) IOP(4/21=2) nosymm",
-               "# m062x/6-311+g(2df,2p) opt=(verytight,gdiis,calcall,small) IOP(2/16=3) nosymm",
-               "# m062x/6-311+g(2df,2p) opt=(calcall,small,maxcyc=100) IOP(2/16=3)",
+               "# m062x/gen opt=(verytight,gdiis) freq IOP(2/16=3)",
+               "# m062x/gen opt=(verytight,gdiis) freq IOP(2/16=3) IOP(4/21=2)",
+               "# m062x/gen opt=(verytight,calcfc,maxcyc=200) freq IOP(2/16=3) nosymm" ,
+               "# m062x/gen opt=(verytight,calcfc,maxcyc=200) freq=numerical IOP(2/16=3) nosymm",
+               "# m062x/gen opt=(verytight,gdiis,small) freq IOP(2/16=3)",
+               "# m062x/gen opt=(verytight,nolinear,calcfc,small) freq IOP(2/16=3)",
+               "# m062x/gen opt=(verytight,gdiis,maxcyc=200) freq=numerical IOP(2/16=3)",
+               "# m062x/gen opt=tight freq IOP(2/16=3)",
+               "# m062x/gen opt=tight freq=numerical IOP(2/16=3)",
+               "# m062x/gen opt=(tight,nolinear,calcfc,small,maxcyc=200) freq IOP(2/16=3)",
+               "# m062x/gen opt freq IOP(2/16=3)",
+               "# m062x/gen opt=(verytight,gdiis) freq=numerical IOP(2/16=3) IOP(4/21=200)",
+               "# m062x/gen opt=(calcfc,verytight,newton,notrustupdate,small,maxcyc=100,maxstep=100) freq=(numerical,step=10) IOP(2/16=3) nosymm",
+               "# m062x/gen opt=(tight,gdiis,small,maxcyc=200,maxstep=100) freq=numerical IOP(2/16=3) nosymm",
+               "# m062x/gen opt=(verytight,gdiis,calcall) IOP(2/16=3)",
+               "# m062x/gen opt=(verytight,gdiis,calcall,small,maxcyc=200) IOP(2/16=3) IOP(4/21=2) nosymm",
+               "# m062x/gen opt=(verytight,gdiis,calcall,small) IOP(2/16=3) nosymm",
+               "# m062x/gen opt=(calcall,small,maxcyc=100) IOP(2/16=3)",
                ]
 
 ##########################################################################################
@@ -521,7 +524,7 @@ class GaussianTS(QMReaction, Gaussian):
             output.append('')
             output.append('')
         else:
-            top_keys = "# m062x/6-311+g(2df,2p) irc=(calcall)"
+            top_keys = "# m062x/gen irc=(calcall)"
             atomsymbols, atomcoords = self.reactantGeom.parseLOG(self.outputFilePath)
             output, atomCount = self.geomToString(atomsymbols, atomcoords, outputString=output)
             assert atomCount == len(self.reactantGeom.molecule.atoms)
@@ -1202,7 +1205,7 @@ class GaussianTS(QMReaction, Gaussian):
             index = 1,
             item = self.reaction,
             data = DistanceData(distances=distances, method='{method}/{basis}'.format(method=self.method, basis=self.basisSet)),
-            shortDesc = "M06-2X/6-311+G(2df,2p) calculation via group additive TS generator.",
+            shortDesc = "M06-2X/MG3S calculation via group additive TS generator.",
         )
 
         outputDataFile = os.path.join(self.settings.fileStore, self.uniqueID + '.data')
@@ -1212,10 +1215,10 @@ class GaussianTS(QMReaction, Gaussian):
 class GaussianTSM062X(GaussianTS):
     """
     M06-2X requires a minimally augmented basis set for good prediction of interatomic distances.
-    The 6-311+G(2df,2p) is recommended for this basis set.
+    The MG3S is recommended for this basis set.
     """
     method = 'm062x'
-    basisSet = '6-311+g(2df,2p)'# It's suppoed to be "6-311+g(3d2f,2df,2p)" to include 3rd row elements, but I get an error when I use that.
+    basisSet = 'gen'# It's suppoed to be "6-311+g(3d2f,2df,2p)" to include 3rd row elements, but I get an error when I use that.
 
     # Before using the '6-311+G(2df,2p)', gen was being used and the basis set was explicitly
     # written in the input file
