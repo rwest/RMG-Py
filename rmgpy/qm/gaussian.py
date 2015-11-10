@@ -195,7 +195,7 @@ class Gaussian:
             output = output + [bottomKeys]
         
         if 'gen' in top_keys:
-            output = output + ['@/scratch/westgroup/mg3s.gbs']
+            output = output + ['@/scratch/westgroup/mg3s.gbs', '\n']
 
         input_string = '\n'.join(output)
 
