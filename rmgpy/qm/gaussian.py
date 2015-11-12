@@ -177,7 +177,7 @@ class Gaussian:
         for the `attmept`th attempt.
         """
         if not top_keys:
-            top_keys = self.inputFileKeywords(attempt)
+            top_keys = self.inputFileKeywords(attempt, nAtoms=len(self.reactantGeom.molecule.atoms))
         if scf:
             top_keys = top_keys + ' scf=qc'
         output = [top_keys] + output
@@ -430,12 +430,8 @@ class GaussianTS(QMReaction, Gaussian):
     methods for now.
     """
     keywords = [
-                "opt=(ts,calcfc,noeigentest) freq", # nosymm
-                "opt=(ts,calcfc,noeigentest,cartesian) freq", # nosymm geom=allcheck guess=check
-                "opt=(ts,calcfc,noeigentest) freq nosymm geom=allcheck guess=read",
-                "opt=(ts,calcfc,noeigentest,cartesian) freq nosymm geom=allcheck guess=check",
-                "opt=(ts,calcall,tight,noeigentest) freq int=ultrafine nosymm",
-                "opt=(ts,calcall,tight,noeigentest,cartesian) freq int=ultrafine geom=allcheck guess=check nosymm",
+                "opt=(ts,calcfc,noeigentest,maxcycles=", # nosymm
+                "opt=(ts,calcfc,noeigentest,cartesian,maxcycles=", # nosymm geom=allcheck guess=check
                 ]
 
     otherKeywords = [
@@ -444,7 +440,7 @@ class GaussianTS(QMReaction, Gaussian):
                      "opt=(qst2,calcall,noeigentest,MaxCycles=",
                      ]
 
-    def inputFileKeywords(self, attempt, irc=False, modRed=None, qst2=None):
+    def inputFileKeywords(self, attempt, irc=False, nAtoms=3, modRed=None, qst2=None):
         """
         Return the top keywords for attempt number `attempt`.
 
@@ -460,6 +456,7 @@ class GaussianTS(QMReaction, Gaussian):
             optionsKeys = optionsKeys + "{N}) nosymm".format(N=max(100,qst2*10))
         else:
             optionsKeys = self.keywords[attempt-1]
+            optionsKeys = optionsKeys + "{N}) nosymm freq".format(N=max(50,nAtoms*8))
 
         if self.basisSet=='':
             top_keys = "# {method} {optionsKeys}".format(
@@ -510,7 +507,7 @@ class GaussianTS(QMReaction, Gaussian):
         assert atomCount == len(self.reactantGeom.molecule.atoms)
 
         output.append('')
-        self.writeInputFile(output, attempt, numProcShared=20, memory='5GB', checkPoint=True, scf=scf)
+        self.writeInputFile(output, attempt, numProcShared=20, memory='5GB', checkPoint=False, scf=scf)
 
     def createIRCFile(self, scf=False):
         """
@@ -518,18 +515,16 @@ class GaussianTS(QMReaction, Gaussian):
         IRC calculation on the transition state. The geometry is taken
         from the checkpoint file created during the geometry search.
         """
-        output = ['', "{charge}   {mult}".format(charge=0, mult=self.reactantGeom.molecule.multiplicity )]
-        if os.path.exists(self.getFilePath('.chk')):
-            top_keys = self.inputFileKeywords(0, irc=True)
-            output.append('')
-            output.append('')
-        else:
-            top_keys = "# m062x/gen irc=(calcall)"
-            atomsymbols, atomcoords = self.reactantGeom.parseLOG(self.outputFilePath)
-            output, atomCount = self.geomToString(atomsymbols, atomcoords, outputString=output)
-            assert atomCount == len(self.reactantGeom.molecule.atoms)
+        output = ['', self.uniqueID + ' IRC', '' ]
+        output.append("{charge}   {mult}".format(charge=0, mult=self.reactantGeom.molecule.multiplicity ))
+        top_keys = "# m062x/gen irc=(calcfc)"
+        atomsymbols, atomcoords = self.reactantGeom.parseLOG(self.outputFilePath)
+        output, atomCount = self.geomToString(atomsymbols, atomcoords, outputString=output)
+        assert atomCount == len(self.reactantGeom.molecule.atoms)
+        
+        output.append('')
 
-        self.writeInputFile(output, top_keys=top_keys, numProcShared=20, memory='5GB', checkPoint=True, inputFilePath=self.ircInputFilePath, scf=scf)
+        self.writeInputFile(output, top_keys=top_keys, numProcShared=20, memory='5GB', checkPoint=False, inputFilePath=self.ircInputFilePath, scf=scf)
 
     def createGeomInputFile(self, freezeAtoms, otherGeom=False):
 
@@ -828,14 +823,43 @@ class GaussianTS(QMReaction, Gaussian):
             if not qst2:
                 notes = notes + 'QST3 needed, see {0}\n'.format(self.settings.fileStore)
                 return False, notes
+    
+    def checkKnownError(self, filePath):
+        """
+        Checks for errors in an output file.
+        
+        Some errors can be treated by modifying the keywords, so this method identifies those errors
+        so they can be addressed.
+        """
+        known_failure_keys = { 
+                'Error in internal coordinate system.': False,
+                'Convergence failure -- run terminated.': False,
+        }
+        
+        with open(filePath) as outputFile:
+            for line in outputFile:
+                line = line.strip()
+
+                for element in known_failure_keys.keys(): #search for failure keywords
+                    if element in line:
+                        logging.error("Gaussian output file contains the following error: {0}".format(element) )
+                        known_failure_keys[element] = True
+        
+        if known_failure_keys['Error in internal coordinate system.']:
+            return 'cartesian'
+        elif known_failure_keys['Convergence failure -- run terminated.']:
+            return 'scf'
+        else:
+            return None
             
     def checkComplete(self, filePath):
         """
-        Check that an IRC output file is complete.
+        Check that an output file is complete.
         
-        Incomplete IRC files may exist from previous runs, due to the job being prematurely terminated.
+        Incomplete files may exist from previous runs, due to the job being prematurely terminated.
         This checks to ensure the job has been completed.
         """
+        
         convergenceFailure = False
         complete = False
         
@@ -843,7 +867,6 @@ class GaussianTS(QMReaction, Gaussian):
         allLines = f.readlines()
         
         lastlines = allLines[-4:]
-        convergence_failed_keys = {"scf": False}
         finished_keys = {
             " Job cpu time": False,
             "termination": False,
@@ -854,16 +877,11 @@ class GaussianTS(QMReaction, Gaussian):
                 finished_keys[" Job cpu time"] = True
             elif line.startswith(' Normal termination') or line.startswith(' Error termination'):
                 finished_keys["termination"] = True
-            elif line.startswith(' Convergence failure -- run terminated.'):
-                convergence_failed_keys["scf"] = True
         
-        if not all(convergence_failed_keys):
-            convergenceFailure = True
-            
         if all(finished_keys):
             complete = True
         
-        return complete, convergenceFailure
+        return complete
     
     def verifyOutputFile(self):
         """
@@ -903,17 +921,14 @@ class GaussianTS(QMReaction, Gaussian):
                         successKeysFound[element] = True
 
         if any(failureKeysFound.values()):
-            if failureKeysFound['Error in internal coordinate system.']:
-                return False, True
-            else:
-                return False, False
+            return False
 
         # Check that ALL 'success' keywords were found in the file.
         if not all( successKeysFound.values() ):
             logging.error('Not all of the required keywords for success were found in the output file!')
-            return False, False
+            return False
         else:
-            return True, False
+            return True
 
     def verifyOptOutputFile(self):
         """

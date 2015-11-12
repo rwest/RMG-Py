@@ -514,58 +514,76 @@ class QMReaction:
             #     checkpointFile = os.path.join(self.settings.fileStore, self.uniqueID + ".chk")
             #     assert os.path.exists(checkpointFile)
             #     os.remove(checkpointFile) # Checkpoint file path
+            
         if os.path.exists(self.outputFilePath):
-            converged, internalCoord = self.verifyOutputFile()
-        else:
+            complete = self.checkComplete(self.outputFilePath)
+            chkErr = self.checkKnownError(self.outputFilePath)
+            if not complete or chkErr!=None: # Redo the calculation
+                os.remove(self.outputFilePath)
+            else:
+                converged = self.verifyOutputFile()
+            
+        if not os.path.exists(self.outputFilePath):
             optEst = self.optEstimate(labels)
             optRC = self.optRxnCenter(labels)
-            print "Optimizing TS once"
-            self.createInputFile(1, fromDoubleEnded=fromDoubleEnded, optEst=optRC)
-            converged, internalCoord = self.run()
-            shutil.copy(self.outputFilePath, self.outputFilePath+'.TS1.log')
-        
-            if os.path.exists(self.ircOutputFilePath):# Remove it
-                os.remove(self.ircOutputFilePath)
-
-        if internalCoord and not converged:
-            notes = 'Internal coordinate error, trying cartesian\n'
-            print "Optimizing TS in cartesian"
-            self.createInputFile(2)
-            converged = self.run()
-            shutil.copy(self.outputFilePath, self.outputFilePath+'.TS2.log')
+            fixableError=True
+            scf = False
+            attempt = 1
+            while fixableError:
+                self.createInputFile(attempt, fromDoubleEnded=fromDoubleEnded, optEst=optRC, scf=scf)
+                converged = self.run()
+                complete = self.checkComplete(self.outputFilePath)
+                chkErr = self.checkKnownError(self.outputFilePath)
+                if chkErr=='cartesian':
+                    attempt = 2
+                elif chkErr=='scf' and scf==False:
+                    scf = True
+                if complete and chkErr==None:
+                    fixableError=False
+                    shutil.copy(self.outputFilePath, self.outputFilePath+'.TS1.log')
             
-        # if not os.path.exists(self.outputFilePath):
-        #     optEst = self.getFilePath('Est{0}'.format(self.outputFileExtension))
-        #     optRC = self.getFilePath('RxnC{0}'.format(self.outputFileExtension))
-        #     if os.path.exists(optEst):
-        #         optEst = self.optEstimate(labels)
-        #     if os.path.exists(optRC):
-        #         optRC = self.optRxnCenter(labels)
-        #     print "Optimizing TS once"
-        #     self.createInputFile(1, fromDoubleEnded=fromDoubleEnded, optEst=optRC)
-        #     converged, internalCoord = self.run()
-        #     shutil.copy(self.outputFilePath, self.outputFilePath+'.TS1.log')
+                # if os.path.exists(self.ircOutputFilePath):# Remove it
+                #     os.remove(self.ircOutputFilePath)
+
+        # if internalCoord and not converged:
+        #     notes = 'Internal coordinate error, trying cartesian\n'
+        #     print "Optimizing TS in cartesian"
+        #     self.createInputFile(2)
+        #     converged = self.run()
+        #     shutil.copy(self.outputFilePath, self.outputFilePath+'.TS2.log')
+        #     
+        # # if not os.path.exists(self.outputFilePath):
+        # #     optEst = self.getFilePath('Est{0}'.format(self.outputFileExtension))
+        # #     optRC = self.getFilePath('RxnC{0}'.format(self.outputFileExtension))
+        # #     if os.path.exists(optEst):
+        # #         optEst = self.optEstimate(labels)
+        # #     if os.path.exists(optRC):
+        # #         optRC = self.optRxnCenter(labels)
+        # #     print "Optimizing TS once"
+        # #     self.createInputFile(1, fromDoubleEnded=fromDoubleEnded, optEst=optRC)
+        # #     converged, internalCoord = self.run()
+        # #     shutil.copy(self.outputFilePath, self.outputFilePath+'.TS1.log')
+        # # 
+        # #     if internalCoord and not converged:
+        # #         notes = 'Internal coordinate error, trying cartesian\n'
+        # #         print "Optimizing TS in cartesian"
+        # #         self.createInputFile(2)
+        # #         converged = self.run()
+        # #         shutil.copy(self.outputFilePath, self.outputFilePath+'.TS2.log')
+        # # else:
+        # #     converged = self.verifyOutputFile()
         # 
-        #     if internalCoord and not converged:
-        #         notes = 'Internal coordinate error, trying cartesian\n'
-        #         print "Optimizing TS in cartesian"
-        #         self.createInputFile(2)
-        #         converged = self.run()
-        #         shutil.copy(self.outputFilePath, self.outputFilePath+'.TS2.log')
-        # else:
-        #     converged = self.verifyOutputFile()
-        
-        if not converged:
-            # Check for convergence failures
-            complete, convergenceFailure = self.checkComplete(self.outputFilePath)
-            if convergenceFailure:
-                # Rerun the calculation with `scf=qc`
-                self.createInputFile(1, fromDoubleEnded=fromDoubleEnded, optEst=optRC, scf=True)
-                converged, internalCoord = self.run()
-                if internalCoord:
-                    self.createInputFile(2, scf=True)
-                    converged = self.run()
-                shutil.copy(self.outputFilePath, self.outputFilePath+'.QC.log')
+        # if not converged:
+        #     # Check for convergence failures
+        #     complete, convergenceFailure = self.checkComplete(self.outputFilePath)
+        #     if convergenceFailure:
+        #         # Rerun the calculation with `scf=qc`
+        #         self.createInputFile(1, fromDoubleEnded=fromDoubleEnded, optEst=optRC, scf=True)
+        #         converged, internalCoord = self.run()
+        #         if internalCoord:
+        #             self.createInputFile(2, scf=True)
+        #             converged = self.run()
+        #         shutil.copy(self.outputFilePath, self.outputFilePath+'.QC.log')
 
         return converged
 
@@ -573,24 +591,28 @@ class QMReaction:
         """
         Conduct the path analysis calculations and validate the transition state.
         """
-        if not os.path.exists(self.ircOutputFilePath):
-            self.createIRCFile()
-            rightTS = self.runIRC()
-        else:
-            complete, convergenceFailure = self.checkComplete(self.ircOutputFilePath)
-            if convergenceFailure:
-                rightTS = False
+        if os.path.exists(self.ircOutputFilePath):
+            complete = self.checkComplete(self.ircOutputFilePath)
+            chkErr = self.checkKnownError(self.ircOutputFilePath)
+            if not complete or chkErr!=None: # Redo the calculation
+                os.remove(self.ircOutputFilePath)
             else:
                 rightTS = self.verifyIRCOutputFile()
-        
-        if not rightTS:
-            # Check for convergence failures
-            complete, convergenceFailure = self.checkComplete(self.ircOutputFilePath)
-            if convergenceFailure:
-                # Rerun the calculation with `scf=qc`
-                self.createIRCFile(scf=True)
+                
+        if not os.path.exists(self.ircOutputFilePath):
+            fixableError=True
+            scf = False
+            attempt = 1
+            while fixableError:
+                self.createIRCFile(scf=scf)
                 rightTS = self.runIRC()
-        
+                chkErr = self.checkKnownError(self.outputFilePath)
+                if chkErr=='scf' and scf==False:
+                    scf = True
+                    
+                if rightTS and chkErr==None:
+                    fixableError=False
+                    
         return rightTS
     
     def checkSQL(self, path_to_db):
