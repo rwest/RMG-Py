@@ -1187,7 +1187,6 @@ class Molecule(Graph):
         from .adjlist import fromAdjacencyList
         
         self.vertices, self.multiplicity = fromAdjacencyList(adjlist, group=False, saturateH=saturateH)
-        self.updateConnectivityValues()
         self.updateAtomTypes()
         
         # Check if multiplicity is possible
