@@ -1545,7 +1545,6 @@ class Molecule(Graph):
         # this is necessary, because saturating with H shouldn't be
         # changing atom types, but it doesn't hurt anything and is not
         # very expensive, so will do it anyway)
-        self.updateConnectivityValues()
         self.sortVertices()
         self.updateAtomTypes()
         self.updateLonePairs()
