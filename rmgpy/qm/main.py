@@ -256,8 +256,22 @@ class QMCalculator():
                 raise Exception("Unknown QM method '{0}' for nwchem".format(self.settings.method))
         else:
             raise Exception("Unknown QM software '{0}'".format(self.settings.software))
-        
-        kinetics0 = qm_reaction_calculator.generateKineticData()
-        return kinetics0
+        return thermo0
     
+
+def save(rmg):
+    # Save the QM thermo to a library if QM was turned on
+    if rmg.quantumMechanics:
+        logging.info('Saving the QM generated thermo to qmThermoLibrary.py ...')
+        rmg.quantumMechanics.database.save(os.path.join(rmg.outputDirectory,'qmThermoLibrary.py'))    
+
+class QMDatabaseWriter(object):
+    """docstring for QMDatabaseWriter"""
+    def __init__(self):
+        super(QMDatabaseWriter, self).__init__()
+    
+    def update(self, rmg):
+        save(rmg)
+
         
+    
