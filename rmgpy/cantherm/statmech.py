@@ -45,6 +45,7 @@ from rmgpy.cantherm.output import prettify
 from rmgpy.cantherm.gaussian import GaussianLog
 from rmgpy.cantherm.molepro import MoleProLog 
 from rmgpy.cantherm.qchem import QchemLog 
+from rmgpy.cantherm.orca import ORCALog 
 
 from rmgpy.species import TransitionState
 
@@ -206,6 +207,7 @@ class StatMechJob:
             'GaussianLog': GaussianLog,
             'QchemLog': QchemLog,
             'MoleProLog': MoleProLog,
+            'ORCALog': ORCALog,
             'ScanLog': ScanLog,
         }
     
@@ -264,6 +266,9 @@ class StatMechJob:
             energyLog = energy; E0 = None
             energyLog.path = os.path.join(directory, energyLog.path)
         elif isinstance(energy, MoleProLog):
+            energyLog = energy; E0 = None
+            energyLog.path = os.path.join(directory, energyLog.path)
+        elif isinstance(energy, ORCALog):
             energyLog = energy; E0 = None
             energyLog.path = os.path.join(directory, energyLog.path)
         elif isinstance(energy, float):
