@@ -499,7 +499,8 @@ class KineticsLibrary(Database):
                                     .format(rxn, self.label, len(rxn.products)))
 
         if not self.auto_generated:
-            self.check_for_duplicates()
+            # when importing models we load a lot of libraries and this takes forEVER
+            # self.check_for_duplicates()
             self.convert_duplicates_to_multi()
 
     def load_entry(self,
