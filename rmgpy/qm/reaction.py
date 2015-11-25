@@ -514,7 +514,10 @@ class QMReaction:
             #     checkpointFile = os.path.join(self.settings.fileStore, self.uniqueID + ".chk")
             #     assert os.path.exists(checkpointFile)
             #     os.remove(checkpointFile) # Checkpoint file path
-            
+        
+        ordered_lbls = deepcopy(labels)
+        ordered_lbls.sort()
+        
         if os.path.exists(self.outputFilePath):
             complete = self.checkComplete(self.outputFilePath)
             chkErr = self.checkKnownError(self.outputFilePath)
@@ -525,7 +528,7 @@ class QMReaction:
             
         if not os.path.exists(self.outputFilePath):
             optEst = self.optEstimate(labels)
-            optRC = self.optRxnCenter(labels)
+            optRC = self.optRxnCenter(ordered_lbls)
             fixableError=True
             scf = False
             attempt = 1
@@ -594,7 +597,7 @@ class QMReaction:
         if os.path.exists(self.ircOutputFilePath):
             complete = self.checkComplete(self.ircOutputFilePath)
             chkErr = self.checkKnownError(self.ircOutputFilePath)
-            if not complete or chkErr!=None: # Redo the calculation
+            if not complete or chkErr!='scf': # Redo the calculation
                 os.remove(self.ircOutputFilePath)
             else:
                 rightTS = self.verifyIRCOutputFile()
@@ -610,7 +613,7 @@ class QMReaction:
                 if chkErr=='scf' and scf==False:
                     scf = True
                     
-                if rightTS and chkErr==None:
+                if chkErr!='scf':
                     fixableError=False
                     
         return rightTS
