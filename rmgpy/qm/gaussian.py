@@ -1128,17 +1128,18 @@ class GaussianTS(QMReaction, Gaussian):
                         atomnosPrep.append(match.group(2))
                         atomCount += 1
 
-            atomnos = []
-            for atom in atomnosPrep:
-                if atom == 'H':
-                    atomnos.append(1)
-                elif atom == 'C':
-                    atomnos.append(6)
-                elif atom == 'O':
-                    atomnos.append(8)
+            # Old way of doing this, just use atom numbers from cclib
+            # atomnos = []
+            # for atom in atomnosPrep:
+            #     if atom == 'H':
+            #         atomnos.append(1)
+            #     elif atom == 'C':
+            #         atomnos.append(6)
+            #     elif atom == 'O':
+            #         atomnos.append(8)
 
             atomcoords = ircParse.atomcoords
-            atomnos = numpy.array(atomnos)
+            atomnos = ircParse.atomnos
             # Convert the IRC geometries into RMG molecules
             # We don't know which is reactant or product, so take the two at the end of the
             # paths and compare to the reactants and products
@@ -1146,7 +1147,7 @@ class GaussianTS(QMReaction, Gaussian):
             mol1.fromXYZ(atomnos, atomcoords[pth1End])
             mol2 = Molecule()
             mol2.fromXYZ(atomnos, atomcoords[-1])
-
+            
             testReaction = Reaction(
                                     reactants = mol1.split(),
                                     products = mol2.split(),
