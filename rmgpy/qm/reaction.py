@@ -532,6 +532,7 @@ class QMReaction:
             fixableError=True
             scf = False
             attempt = 1
+            trialRun = 1
             while fixableError:
                 self.createInputFile(attempt, fromDoubleEnded=fromDoubleEnded, optEst=optRC, scf=scf)
                 converged = self.run()
@@ -544,6 +545,9 @@ class QMReaction:
                 if complete and chkErr==None:
                     fixableError=False
                     shutil.copy(self.outputFilePath, self.outputFilePath+'.TS1.log')
+                    
+                shutil.copy(self.outputFilePath, self.outputFilePath+'.trial{0}.log'.format(trialRun))
+                trialRun += 1
             
                 # if os.path.exists(self.ircOutputFilePath):# Remove it
                 #     os.remove(self.ircOutputFilePath)
@@ -597,8 +601,10 @@ class QMReaction:
         if os.path.exists(self.ircOutputFilePath):
             complete = self.checkComplete(self.ircOutputFilePath)
             chkErr = self.checkKnownError(self.ircOutputFilePath)
-            if not complete or chkErr!='scf': # Redo the calculation
+            if not complete or chkErr=='scf': # Redo the calculation
                 os.remove(self.ircOutputFilePath)
+                if chkErr=='scf':
+                    scf=True
             else:
                 rightTS = self.verifyIRCOutputFile()
                 
@@ -606,15 +612,19 @@ class QMReaction:
             fixableError=True
             scf = False
             attempt = 1
+            trialRun = 1
             while fixableError:
                 self.createIRCFile(scf=scf)
                 rightTS = self.runIRC()
-                chkErr = self.checkKnownError(self.outputFilePath)
+                chkErr = self.checkKnownError(self.ircOutputFilePath)
                 if chkErr=='scf' and scf==False:
                     scf = True
                     
                 if chkErr!='scf':
                     fixableError=False
+                    
+                shutil.copy(self.ircOutputFilePath, self.ircOutputFilePath+'.trial{0}.log'.format(trialRun))
+                trialRun += 1
                     
         return rightTS
     
