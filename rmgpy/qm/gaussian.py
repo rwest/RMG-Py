@@ -903,7 +903,6 @@ class GaussianTS(QMReaction, Gaussian):
         Incomplete files may exist from previous runs, due to the job being prematurely terminated.
         This checks to ensure the job has been completed.
         """
-        
         convergenceFailure = False
         complete = False
         
@@ -922,7 +921,7 @@ class GaussianTS(QMReaction, Gaussian):
             elif line.startswith(' Normal termination') or line.startswith(' Error termination'):
                 finished_keys["termination"] = True
         
-        if all(finished_keys):
+        if all(finished_keys.values()):
             complete = True
         
         return complete
