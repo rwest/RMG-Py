@@ -1169,7 +1169,7 @@ class Molecule(Graph):
         parser.fromAugmentedInChI(self, aug_inchi)
         return self
 
-    def fromSMILES(self, smilesstr, backend='try-all'):
+    def fromSMILES(self, smilesstr, backend='rdkit'):
         """
         Convert a SMILES string `smilesstr` to a molecular structure.
         """
