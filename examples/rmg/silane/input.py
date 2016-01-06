@@ -65,7 +65,7 @@ options(
 )
 
 generatedSpeciesConstraints(
-    maximumSiliconAtoms=3
+    maximumSiliconAtoms=6
 )
 
 
