@@ -430,8 +430,8 @@ class GaussianTS(QMReaction, Gaussian):
     methods for now.
     """
     keywords = [
-                "opt=(ts,calcfc,noeigentest,maxcycles=", # nosymm
-                "opt=(ts,calcfc,noeigentest,cartesian,maxcycles=", # nosymm geom=allcheck guess=check
+                "opt=(ts,calcall,noeigentest,maxcycles=", # nosymm
+                "opt=(ts,calcall,noeigentest,cartesian,maxcycles=", # nosymm geom=allcheck guess=check
                 ]
 
     otherKeywords = [
@@ -456,7 +456,7 @@ class GaussianTS(QMReaction, Gaussian):
             optionsKeys = optionsKeys + "{N}) nosymm".format(N=max(100,qst2*10))
         else:
             optionsKeys = self.keywords[attempt-1]
-            optionsKeys = optionsKeys + "{N}) nosymm freq".format(N=max(50,nAtoms*8))
+            optionsKeys = optionsKeys + "{N}) int=ultrafine nosymm freq".format(N=max(50,nAtoms*8))
 
         if self.basisSet=='':
             top_keys = "# {method} {optionsKeys}".format(
@@ -596,39 +596,61 @@ class GaussianTS(QMReaction, Gaussian):
 
         inputFilePath = self.getFilePath('Est{0}'.format(self.inputFileExtension))
         outputFilePath = self.getFilePath('Est{0}'.format(self.outputFileExtension))
+        
+        if os.path.exists(self.outputFilePath):
+            complete = self.checkComplete(outputFilePath)
+            chkErr = self.checkKnownError(outputFilePath)
+            if not complete or chkErr!=None: # Redo the calculation
+                os.remove(self.outputFilePath)
 
         if not os.path.exists(outputFilePath):
+            fixableError=True
+            scf=False
             attempt = 1
-
-            output = ['', self.uniqueID, '' ]
-            output.append("{charge}   {mult}".format(charge=0, mult=self.reactantGeom.molecule.multiplicity ))
 
             # molfile = self.reactantGeom.getRefinedMolFilePath()
             molfile = self.reactantGeom.getCrudeMolFilePath()
 
             assert os.path.exists(molfile)
             atomsymbols, atomcoords = self.reactantGeom.parseMOL(molfile)
-
-            output, atomCount = self.geomToString(atomsymbols, atomcoords, outputString=output)
-
-            assert atomCount == len(self.reactantGeom.molecule.atoms)
-
-            output.append('')
-
-            if self.basisSet:
-                top_keys = '# {0}/{1} Opt=(ModRedun,Loose) Int(Grid=SG1)'.format(self.method, self.basisSet)
-            else:
-                top_keys = '# {0} Opt=(ModRedun,Loose) Int(Grid=SG1)'.format(self.method)
-
+            
             dist_combo_it = itertools.combinations(labels, 2)
             dist_combo_l = list(dist_combo_it)
             bottomKeys = ''
             for combo in dist_combo_l:
                 bottomKeys = bottomKeys + '{0} {1} F\n'.format(combo[0] + 1, combo[1] + 1)
+            
+            if self.basisSet:
+                top_keys = '# {0}/{1} opt=(modredundant,loose,maxcycles={2}) int(grid=sg1)'.format(self.method, self.basisSet, max(50,len(atomsymbols)*8))
+            else:
+                top_keys = '# {0} opt=(modredundant,loose,maxcycles={1}) int(grid=sg1)'.format(self.method, max(50,len(atomsymbols)*8))
+            
+            while fixableError:
+                output = ['', self.uniqueID, '' ]
+                output.append("{charge}   {mult}".format(charge=0, mult=self.reactantGeom.molecule.multiplicity ))
+                
+                output, atomCount = self.geomToString(atomsymbols, atomcoords, outputString=output)
 
-            self.writeInputFile(output, attempt, top_keys=top_keys, numProcShared=20, memory='5GB', bottomKeys=bottomKeys, inputFilePath=inputFilePath)
+                assert atomCount == len(self.reactantGeom.molecule.atoms)
 
-            outputFilePath = self.runDouble(inputFilePath)
+                output.append('')
+
+                self.writeInputFile(output, attempt, top_keys=top_keys, numProcShared=20, memory='5GB', bottomKeys=bottomKeys, inputFilePath=inputFilePath, scf=scf)
+
+                outputFilePath = self.runDouble(inputFilePath)
+                
+                complete = self.checkComplete(outputFilePath)
+                chkErr = self.checkKnownError(outputFilePath)
+                
+                if complete and chkErr=='scf' and scf==False:
+                    fixableError = True
+                elif not complete:
+                    fixableError = True
+                else:
+                    fixableError = False
+                
+                if chkErr=='scf' and scf==False:
+                    scf = True
 
         return outputFilePath
     
@@ -640,33 +662,32 @@ class GaussianTS(QMReaction, Gaussian):
 
         inputFilePath = self.getFilePath('RxnC{0}'.format(self.inputFileExtension))
         outputFilePath = self.getFilePath('RxnC{0}'.format(self.outputFileExtension))
+        
+        if os.path.exists(self.outputFilePath):
+            complete = self.checkComplete(outputFilePath)
+            chkErr = self.checkKnownError(outputFilePath)
+            if not complete or chkErr!=None: # Redo the calculation
+                os.remove(self.outputFilePath)
 
         if not os.path.exists(outputFilePath):
+            fixableError=True
+            scf=False
             # Get the geometry from the OptEst file
             readFilePath = self.getFilePath('Est{0}'.format(self.outputFileExtension))
             assert os.path.exists(readFilePath)
             atomsymbols, atomcoords = self.reactantGeom.parseLOG(readFilePath)
             
             attempt = 1
-
-            output = ['', self.uniqueID, '' ]
-            output.append("{charge}   {mult}".format(charge=0, mult=self.reactantGeom.molecule.multiplicity ))
             
-            output, atomCount = self.geomToString(atomsymbols, atomcoords, outputString=output)
-
-            assert atomCount == len(self.reactantGeom.molecule.atoms)
-
-            output.append('')
-
             if self.basisSet:
-                top_keys = '# {0}/{1} opt=(ts,calcfc,noeigentest)'.format(self.method, self.basisSet)
+                top_keys = '# {0}/{1} opt=(ts,modredundant,calcfc,noeigentest,maxcycles={2})'.format(self.method, self.basisSet, max(50,len(atomsymbols)*8))
             else:
-                top_keys = '# {0} opt=(ts,calcfc,noeigentest)'.format(self.method)
+                top_keys = '# {0} opt=(ts,modredundant,calcfc,noeigentest,maxcycles={1})'.format(self.method, max(50,len(atomsymbols)*8))
             
             # Get list of all distances
-            dist_combo_it = itertools.combinations(range(atomCount), 2)
+            dist_combo_it = itertools.combinations(range(len(atomsymbols)), 2)
             dist_combo_all = list(dist_combo_it)
-                
+            
             # Get list of things we want unfrozen
             dist_combo_it = itertools.combinations(labels, 2)
             dist_combo_part = list(dist_combo_it)
@@ -677,10 +698,33 @@ class GaussianTS(QMReaction, Gaussian):
             bottomKeys = ''
             for combo in freezeList:
                 bottomKeys = bottomKeys + '{0} {1} F\n'.format(combo[0] + 1, combo[1] + 1)
+            
+            while fixableError:
+                output = ['', self.uniqueID, '' ]
+                output.append("{charge}   {mult}".format(charge=0, mult=self.reactantGeom.molecule.multiplicity ))
+                
+                output, atomCount = self.geomToString(atomsymbols, atomcoords, outputString=output)
 
-            self.writeInputFile(output, attempt, top_keys=top_keys, numProcShared=20, memory='5GB', bottomKeys=bottomKeys, inputFilePath=inputFilePath)
+                assert atomCount == len(self.reactantGeom.molecule.atoms)
 
-            outputFilePath = self.runDouble(inputFilePath)
+                output.append('')
+
+                self.writeInputFile(output, attempt, top_keys=top_keys, numProcShared=20, memory='5GB', bottomKeys=bottomKeys, inputFilePath=inputFilePath)
+
+                outputFilePath = self.runDouble(inputFilePath)
+                
+                complete = self.checkComplete(outputFilePath)
+                chkErr = self.checkKnownError(outputFilePath)
+                
+                if complete and chkErr=='scf' and scf==False:
+                    fixableError = True
+                elif not complete:
+                    fixableError = True
+                else:
+                    fixableError = False
+                
+                if chkErr=='scf' and scf==False:
+                    scf = True
 
         return outputFilePath
 
@@ -859,7 +903,6 @@ class GaussianTS(QMReaction, Gaussian):
         Incomplete files may exist from previous runs, due to the job being prematurely terminated.
         This checks to ensure the job has been completed.
         """
-        
         convergenceFailure = False
         complete = False
         
@@ -878,7 +921,7 @@ class GaussianTS(QMReaction, Gaussian):
             elif line.startswith(' Normal termination') or line.startswith(' Error termination'):
                 finished_keys["termination"] = True
         
-        if all(finished_keys):
+        if all(finished_keys.values()):
             complete = True
         
         return complete
@@ -1084,17 +1127,18 @@ class GaussianTS(QMReaction, Gaussian):
                         atomnosPrep.append(match.group(2))
                         atomCount += 1
 
-            atomnos = []
-            for atom in atomnosPrep:
-                if atom == 'H':
-                    atomnos.append(1)
-                elif atom == 'C':
-                    atomnos.append(6)
-                elif atom == 'O':
-                    atomnos.append(8)
+            # Old way of doing this, just use atom numbers from cclib
+            # atomnos = []
+            # for atom in atomnosPrep:
+            #     if atom == 'H':
+            #         atomnos.append(1)
+            #     elif atom == 'C':
+            #         atomnos.append(6)
+            #     elif atom == 'O':
+            #         atomnos.append(8)
 
             atomcoords = ircParse.atomcoords
-            atomnos = numpy.array(atomnos)
+            atomnos = ircParse.atomnos
             # Convert the IRC geometries into RMG molecules
             # We don't know which is reactant or product, so take the two at the end of the
             # paths and compare to the reactants and products
@@ -1102,7 +1146,7 @@ class GaussianTS(QMReaction, Gaussian):
             mol1.fromXYZ(atomnos, atomcoords[pth1End])
             mol2 = Molecule()
             mol2.fromXYZ(atomnos, atomcoords[-1])
-
+            
             testReaction = Reaction(
                                     reactants = mol1.split(),
                                     products = mol2.split(),
