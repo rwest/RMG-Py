@@ -120,7 +120,7 @@ class Geometry:
         """
         Embed the RDKit molecule and create the crude molecule file.
         """
-        if bm == None:
+        if bm is None:
             AllChem.EmbedMultipleConfs(rdmol, numConfAttempts,randomSeed=1)
             crude = Chem.Mol(rdmol.ToBinary())
             rdmol, minEid = self.optimize(rdmol)
@@ -166,7 +166,7 @@ class Geometry:
         crude = Chem.Mol(rdmol.ToBinary())
 
         for conf in rdmol.GetConformers():
-            if boundsMatrix == None:
+            if boundsMatrix is None:
                 AllChem.UFFOptimizeMolecule(rdmol,confId=conf.GetId())
                 energy=AllChem.UFFGetMoleculeForceField(rdmol,confId=conf.GetId()).CalcEnergy()
             else:
