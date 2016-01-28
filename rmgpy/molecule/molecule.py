@@ -1548,7 +1548,7 @@ class Molecule(Graph):
         # very expensive, so will do it anyway)
         self.sortVertices()
         self.updateAtomTypes()
-        self.updateLonePairs()
+        #self.updateLonePairs()
         self.multiplicity = 1
 
         return added
