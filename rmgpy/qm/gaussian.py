@@ -177,7 +177,7 @@ class Gaussian:
         for the `attmept`th attempt.
         """
         if not top_keys:
-            top_keys = self.inputFileKeywords(attempt, nAtoms=len(self.reactantGeom.molecule.atoms))
+            top_keys = self.inputFileKeywords(attempt)
         if scf:
             top_keys = top_keys + ' scf=qc'
         output = [top_keys] + output
@@ -1260,8 +1260,10 @@ class GaussianTS(QMReaction, Gaussian):
             description = "Found via double-ended search by the automatic transition state generator"
         else:
             description = "Found via group additive estimation by the automatic transition state generator"
+        label = ' +  <=>  + '
         entry = Entry(
             index = 1,
+            label = label,
             item = self.reaction,
             data = DistanceData(distances=distances, method='{method}/{basis}'.format(method=self.method, basis=self.basisSet)),
             shortDesc = "M06-2X/MG3S calculation via group additive TS generator.",

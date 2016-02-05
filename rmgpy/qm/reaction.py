@@ -651,7 +651,7 @@ class QMReaction:
         """
         # Check SQL database for transition state
         # self.checkSQL('/scratch/westgroup')
-
+        
         successfulTS = self.optimizeTS(labels, fromDoubleEnded=fromDoubleEnded)
         if not successfulTS:
             notes = 'TS not converged\n'
@@ -977,6 +977,7 @@ class QMReaction:
                     bondType = 'N#N'
                 elif (bond.atom1.symbol=='C' and bond.atom2.symbol=='N') or (bond.atom1.symbol=='N' and bond.atom2.symbol=='C'):
                     bondType = 'N#C'
+            import ipdb; ipdb.set_trace()
             try:
                 bondDict[bondType] += 1
             except KeyError:
@@ -1100,7 +1101,7 @@ class QMReaction:
                 allAtoms = []
                 for atom in qmMolecule.molecule.atoms:
                     allAtoms.append(atom.symbol)
-                bondDict = self.getBonds(qmMolecule)
+                bondDict = {}#self.getBonds(qmMolecule)
                 self.writeCanThermStatMech(allAtoms, bondDict, qmMolecule.molecule.multiplicity, qmMolecule.outputFilePath, symmetry=1)#qmMolecule.pointGroup.symmetryNumber)
                 molecules.append(qmMolecule)
                 # log = GaussianLog(qmMolecule.outputFilePath)
