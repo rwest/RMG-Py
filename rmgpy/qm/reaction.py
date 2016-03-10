@@ -623,6 +623,7 @@ class QMReaction:
             notes = 'IRC failed\n'
         else:
             self.writeRxnOutputFile(labels)
+            import ipdb; ipdb.set_trace()
             notes = 'Success\n'
 
         return validTS, notes
