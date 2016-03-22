@@ -332,7 +332,7 @@ def toRDKitMol(mol, removeHs=True, returnMapping=False, sanitize=True):
     for index, atom in enumerate(mol.vertices):
         rdAtom = Chem.rdchem.Atom(atom.element.symbol)
         rdAtom.SetNumRadicalElectrons(atom.radicalElectrons)
-        if atom.element.symbol == 'C' and atom.lonePairs == 1 and mol.multiplicity == 1: rdAtom.SetNumRadicalElectrons(2)
+        if atom.element.symbol in ['C','Si'] and atom.lonePairs == 1: rdAtom.SetNumRadicalElectrons(atom.radicalElectrons + 2)
         rdkitmol.AddAtom(rdAtom)
         if removeHs and atom.symbol == 'H':
             pass
