@@ -944,7 +944,7 @@ class MoleculeDrawer:
             for atom2 in atom.bonds:
                 vector += coordinates[atoms.index(atom2),:] - coordinates[index,:]
             heavyFirst = vector[0] <= 0
-            if len(atoms) == 1 and atoms[0].symbol not in ['C', 'N'] and atoms[0].charge == 0 and atoms[0].radicalElectrons == 0:
+            if len(atoms) == 1 and atoms[0].symbol not in ['C', 'N', 'Si'] and atoms[0].charge == 0 and atoms[0].radicalElectrons == 0:
                 # This is so e.g. water is rendered as H2O rather than OH2
                 heavyFirst = False
                 cr.set_font_size(self.options['fontSizeNormal'])
@@ -1039,6 +1039,7 @@ class MoleculeDrawer:
     
         if symbol != '':
             heavyAtom = symbol[0]
+            if heavyAtom == 'S' and symbol[1] == 'i': heavyAtom = 'Si'
     
             # Split label by atoms
             labels = re.findall('[A-Z][a-z]*[0-9]*', symbol)
