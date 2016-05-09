@@ -268,7 +268,7 @@ def parse_N_layer(auxinfo):
     else:
         raise Exception('Could not find the N-layer in the auxiliary info: {}'.format(auxinfo))
 
-    indices = map(int, atom_numbers.split(','))
+    indices = map(int, atom_numbers.replace(',', ' ').replace(';',' ').split())
 
     return indices
         
