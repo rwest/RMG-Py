@@ -1,7 +1,7 @@
 # coding: utf-8
 
 database(
-    thermoLibraries = ['primaryThermoLibrary'],
+    thermoLibraries = ['primaryThermoLibrary', 'Chlorination', 'DFT_QCI_thermo'],
     reactionLibraries = [],
     seedMechanisms = [],
     kineticsDepositories = 'default',
@@ -43,7 +43,7 @@ species(
 )
 
 simpleReactor(
-    temperature = (2500,"K"),
+    temperature = (1900,"K"),
     pressure = (1.01,"bar"),
     initialMoleFractions={
         "CH3Cl": 0.1,
