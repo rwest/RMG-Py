@@ -71,6 +71,12 @@ model(
     filterReactions = 0,
 )
 
+generatedSpeciesConstraints(
+    allowSingletO2 = False,
+    allowed = ['input species', 'seed mechanisms'],
+    maximumCarbonAtoms = 3,
+)
+
 options(
     units = "si",
     saveRestartPeriod = None,
