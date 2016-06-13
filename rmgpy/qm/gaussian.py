@@ -600,60 +600,60 @@ class GaussianTS(QMReaction, Gaussian):
         inputFilePath = self.getFilePath('Est{0}'.format(self.inputFileExtension))
         outputFilePath = self.getFilePath('Est{0}'.format(self.outputFileExtension))
         
-        if os.path.exists(self.outputFilePath):
+        # if os.path.exists(self.outputFilePath):
+        #     complete = self.checkComplete(outputFilePath)
+        #     chkErr = self.checkKnownError(outputFilePath)
+        #     if not complete or chkErr!=None: # Redo the calculation
+        #         os.remove(self.outputFilePath)
+        # 
+        # if not os.path.exists(outputFilePath):
+        fixableError=True
+        scf=False
+        attempt = 1
+
+        # molfile = self.reactantGeom.getRefinedMolFilePath()
+        molfile = self.reactantGeom.getCrudeMolFilePath()
+
+        assert os.path.exists(molfile)
+        atomsymbols, atomcoords = self.reactantGeom.parseMOL(molfile)
+        
+        dist_combo_it = itertools.combinations(labels, 2)
+        dist_combo_l = list(dist_combo_it)
+        bottomKeys = ''
+        for combo in dist_combo_l:
+            bottomKeys = bottomKeys + '{0} {1} F\n'.format(combo[0] + 1, combo[1] + 1)
+        
+        if self.basisSet:
+            top_keys = '# {0}/{1} opt=(modredundant,loose,maxcycles={2}) int(grid=sg1)'.format(self.method, self.basisSet, max(50,len(atomsymbols)*8))
+        else:
+            top_keys = '# {0} opt=(modredundant,loose,maxcycles={1}) int(grid=sg1)'.format(self.method, max(50,len(atomsymbols)*8))
+        
+        while fixableError:
+            output = ['', self.uniqueID, '' ]
+            output.append("{charge}   {mult}".format(charge=0, mult=self.reactantGeom.molecule.multiplicity ))
+            
+            output, atomCount = self.geomToString(atomsymbols, atomcoords, outputString=output)
+
+            assert atomCount == len(self.reactantGeom.molecule.atoms)
+
+            output.append('')
+
+            self.writeInputFile(output, attempt, top_keys=top_keys, numProcShared=20, memory='5GB', bottomKeys=bottomKeys, inputFilePath=inputFilePath, scf=scf)
+
+            outputFilePath = self.runDouble(inputFilePath)
+            
             complete = self.checkComplete(outputFilePath)
             chkErr = self.checkKnownError(outputFilePath)
-            if not complete or chkErr!=None: # Redo the calculation
-                os.remove(self.outputFilePath)
-
-        if not os.path.exists(outputFilePath):
-            fixableError=True
-            scf=False
-            attempt = 1
-
-            # molfile = self.reactantGeom.getRefinedMolFilePath()
-            molfile = self.reactantGeom.getCrudeMolFilePath()
-
-            assert os.path.exists(molfile)
-            atomsymbols, atomcoords = self.reactantGeom.parseMOL(molfile)
             
-            dist_combo_it = itertools.combinations(labels, 2)
-            dist_combo_l = list(dist_combo_it)
-            bottomKeys = ''
-            for combo in dist_combo_l:
-                bottomKeys = bottomKeys + '{0} {1} F\n'.format(combo[0] + 1, combo[1] + 1)
-            
-            if self.basisSet:
-                top_keys = '# {0}/{1} opt=(modredundant,loose,maxcycles={2}) int(grid=sg1)'.format(self.method, self.basisSet, max(50,len(atomsymbols)*8))
+            if complete and chkErr=='scf' and scf==False:
+                fixableError = True
+            elif not complete:
+                fixableError = True
             else:
-                top_keys = '# {0} opt=(modredundant,loose,maxcycles={1}) int(grid=sg1)'.format(self.method, max(50,len(atomsymbols)*8))
+                fixableError = False
             
-            while fixableError:
-                output = ['', self.uniqueID, '' ]
-                output.append("{charge}   {mult}".format(charge=0, mult=self.reactantGeom.molecule.multiplicity ))
-                
-                output, atomCount = self.geomToString(atomsymbols, atomcoords, outputString=output)
-
-                assert atomCount == len(self.reactantGeom.molecule.atoms)
-
-                output.append('')
-
-                self.writeInputFile(output, attempt, top_keys=top_keys, numProcShared=20, memory='5GB', bottomKeys=bottomKeys, inputFilePath=inputFilePath, scf=scf)
-
-                outputFilePath = self.runDouble(inputFilePath)
-                
-                complete = self.checkComplete(outputFilePath)
-                chkErr = self.checkKnownError(outputFilePath)
-                
-                if complete and chkErr=='scf' and scf==False:
-                    fixableError = True
-                elif not complete:
-                    fixableError = True
-                else:
-                    fixableError = False
-                
-                if chkErr=='scf' and scf==False:
-                    scf = True
+            if chkErr=='scf' and scf==False:
+                scf = True    
 
         return outputFilePath
     
@@ -666,68 +666,68 @@ class GaussianTS(QMReaction, Gaussian):
         inputFilePath = self.getFilePath('RxnC{0}'.format(self.inputFileExtension))
         outputFilePath = self.getFilePath('RxnC{0}'.format(self.outputFileExtension))
         
-        if os.path.exists(self.outputFilePath):
+        # if os.path.exists(self.outputFilePath):
+        #     complete = self.checkComplete(outputFilePath)
+        #     chkErr = self.checkKnownError(outputFilePath)
+        #     if not complete or chkErr!=None: # Redo the calculation
+        #         os.remove(self.outputFilePath)
+        # 
+        # if not os.path.exists(outputFilePath):
+        fixableError=True
+        scf=False
+        # Get the geometry from the OptEst file
+        readFilePath = self.getFilePath('Est{0}'.format(self.outputFileExtension))
+        assert os.path.exists(readFilePath)
+        atomsymbols, atomcoords = self.reactantGeom.parseLOG(readFilePath)
+        
+        attempt = 1
+        
+        if self.basisSet:
+            top_keys = '# {0}/{1} opt=(ts,modredundant,calcfc,noeigentest,maxcycles={2})'.format(self.method, self.basisSet, max(50,len(atomsymbols)*8))
+        else:
+            top_keys = '# {0} opt=(ts,modredundant,calcfc,noeigentest,maxcycles={1})'.format(self.method, max(50,len(atomsymbols)*8))
+        
+        # Get list of all distances
+        dist_combo_it = itertools.combinations(range(len(atomsymbols)), 2)
+        dist_combo_all = list(dist_combo_it)
+        
+        # Get list of things we want unfrozen
+        dist_combo_it = itertools.combinations(labels, 2)
+        dist_combo_part = list(dist_combo_it)
+        
+        # Get list of things we want frozen
+        freezeList = [x for x in dist_combo_all if x not in dist_combo_part]
+        
+        bottomKeys = ''
+        for combo in freezeList:
+            bottomKeys = bottomKeys + '{0} {1} F\n'.format(combo[0] + 1, combo[1] + 1)
+        
+        while fixableError:
+            output = ['', self.uniqueID, '' ]
+            output.append("{charge}   {mult}".format(charge=0, mult=self.reactantGeom.molecule.multiplicity ))
+            
+            output, atomCount = self.geomToString(atomsymbols, atomcoords, outputString=output)
+
+            assert atomCount == len(self.reactantGeom.molecule.atoms)
+
+            output.append('')
+
+            self.writeInputFile(output, attempt, top_keys=top_keys, numProcShared=20, memory='5GB', bottomKeys=bottomKeys, inputFilePath=inputFilePath)
+
+            outputFilePath = self.runDouble(inputFilePath)
+            
             complete = self.checkComplete(outputFilePath)
             chkErr = self.checkKnownError(outputFilePath)
-            if not complete or chkErr!=None: # Redo the calculation
-                os.remove(self.outputFilePath)
-
-        if not os.path.exists(outputFilePath):
-            fixableError=True
-            scf=False
-            # Get the geometry from the OptEst file
-            readFilePath = self.getFilePath('Est{0}'.format(self.outputFileExtension))
-            assert os.path.exists(readFilePath)
-            atomsymbols, atomcoords = self.reactantGeom.parseLOG(readFilePath)
             
-            attempt = 1
-            
-            if self.basisSet:
-                top_keys = '# {0}/{1} opt=(ts,modredundant,calcfc,noeigentest,maxcycles={2})'.format(self.method, self.basisSet, max(50,len(atomsymbols)*8))
+            if complete and chkErr=='scf' and scf==False:
+                fixableError = True
+            elif not complete:
+                fixableError = True
             else:
-                top_keys = '# {0} opt=(ts,modredundant,calcfc,noeigentest,maxcycles={1})'.format(self.method, max(50,len(atomsymbols)*8))
+                fixableError = False
             
-            # Get list of all distances
-            dist_combo_it = itertools.combinations(range(len(atomsymbols)), 2)
-            dist_combo_all = list(dist_combo_it)
-            
-            # Get list of things we want unfrozen
-            dist_combo_it = itertools.combinations(labels, 2)
-            dist_combo_part = list(dist_combo_it)
-            
-            # Get list of things we want frozen
-            freezeList = [x for x in dist_combo_all if x not in dist_combo_part]
-            
-            bottomKeys = ''
-            for combo in freezeList:
-                bottomKeys = bottomKeys + '{0} {1} F\n'.format(combo[0] + 1, combo[1] + 1)
-            
-            while fixableError:
-                output = ['', self.uniqueID, '' ]
-                output.append("{charge}   {mult}".format(charge=0, mult=self.reactantGeom.molecule.multiplicity ))
-                
-                output, atomCount = self.geomToString(atomsymbols, atomcoords, outputString=output)
-
-                assert atomCount == len(self.reactantGeom.molecule.atoms)
-
-                output.append('')
-
-                self.writeInputFile(output, attempt, top_keys=top_keys, numProcShared=20, memory='5GB', bottomKeys=bottomKeys, inputFilePath=inputFilePath)
-
-                outputFilePath = self.runDouble(inputFilePath)
-                
-                complete = self.checkComplete(outputFilePath)
-                chkErr = self.checkKnownError(outputFilePath)
-                
-                if complete and chkErr=='scf' and scf==False:
-                    fixableError = True
-                elif not complete:
-                    fixableError = True
-                else:
-                    fixableError = False
-                
-                if chkErr=='scf' and scf==False:
-                    scf = True
+            if chkErr=='scf' and scf==False:
+                scf = True
 
         return outputFilePath
 
