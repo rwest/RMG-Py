@@ -327,11 +327,12 @@ def getAtomType(atom, bonds):
     with local bond structure `bonds`, a ``dict`` containing atom-bond pairs.
     """
 
-    cython.declare(atomType=str, atomSymbol=str)
+    cython.declare(atomType=str)
     cython.declare(single=cython.int, double=cython.int, doubleR=cython.int,
                    doubleS=cython.int, doubleO=cython.int, triple=cython.int,
                    benzene=cython.int)
-
+    cython.declare(bond12=Bond, atom2=Atom, atomSymbol=cython.str)
+    
     atomType = ''
     
     # Count numbers of each higher-order bond type

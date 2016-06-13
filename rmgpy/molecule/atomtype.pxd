@@ -24,6 +24,8 @@
 #
 ################################################################################
 
+from .molecule cimport Bond, Atom
+
 cdef class AtomType:
 
     cdef public str label
