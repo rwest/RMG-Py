@@ -13,6 +13,7 @@ import shutil
 import math
 import sqlite3 as lite
 
+import rmgpy
 from rmgpy.data.kinetics.transitionstates import TransitionStates
 from rmgpy.molecule import Molecule, Atom, getElement
 from rmgpy.species import Species, TransitionState
@@ -126,6 +127,17 @@ class QMReaction:
     def ircInputFilePath(self):
         """Get the irc input file name."""
         return self.getFilePath('IRC' + self.inputFileExtension)
+        
+    @property
+    def duplicateFam(self):
+        """Get reacton families that should are it's own reverse."""
+        duplicateFam = {
+            'H_Abstraction': True,
+            'R_Addition_MultipleBond': False,
+            'intra_H_migration': True,
+            'Disproportionation': False,
+        }
+        return duplicateFam
 
     def setOutputDirectory(self):
         """
@@ -502,18 +514,6 @@ class QMReaction:
         """
         Conduct the optimization step of the transition state search.
         """
-        # if os.path.exists(self.outputFilePath):
-        #     os.remove(checkpointFile)
-            # complete = self.checkComplete(self.outputFilePath)
-            # 
-            # if complete:
-            #     converged, internalCoord = self.verifyOutputFile()
-            # else:
-            #     # Delete the output and checkpoint files so we redo the calc
-            #     os.remove(self.outputFilePath)
-            #     checkpointFile = os.path.join(self.settings.fileStore, self.uniqueID + ".chk")
-            #     assert os.path.exists(checkpointFile)
-            #     os.remove(checkpointFile) # Checkpoint file path
         
         ordered_lbls = deepcopy(labels)
         ordered_lbls.sort()
@@ -525,6 +525,10 @@ class QMReaction:
                 os.remove(self.outputFilePath)
             else:
                 converged = self.verifyOutputFile()
+                if not converged:
+                    os.remove(self.outputFilePath)
+                    if os.path.exists(self.ircOutputFilePath):
+                        os.remove(self.ircOutputFilePath)
             
         if not os.path.exists(self.outputFilePath):
             optEst = self.optEstimate(labels)
@@ -548,49 +552,6 @@ class QMReaction:
                     
                 shutil.copy(self.outputFilePath, self.outputFilePath+'.trial{0}.log'.format(trialRun))
                 trialRun += 1
-            
-                # if os.path.exists(self.ircOutputFilePath):# Remove it
-                #     os.remove(self.ircOutputFilePath)
-
-        # if internalCoord and not converged:
-        #     notes = 'Internal coordinate error, trying cartesian\n'
-        #     print "Optimizing TS in cartesian"
-        #     self.createInputFile(2)
-        #     converged = self.run()
-        #     shutil.copy(self.outputFilePath, self.outputFilePath+'.TS2.log')
-        #     
-        # # if not os.path.exists(self.outputFilePath):
-        # #     optEst = self.getFilePath('Est{0}'.format(self.outputFileExtension))
-        # #     optRC = self.getFilePath('RxnC{0}'.format(self.outputFileExtension))
-        # #     if os.path.exists(optEst):
-        # #         optEst = self.optEstimate(labels)
-        # #     if os.path.exists(optRC):
-        # #         optRC = self.optRxnCenter(labels)
-        # #     print "Optimizing TS once"
-        # #     self.createInputFile(1, fromDoubleEnded=fromDoubleEnded, optEst=optRC)
-        # #     converged, internalCoord = self.run()
-        # #     shutil.copy(self.outputFilePath, self.outputFilePath+'.TS1.log')
-        # # 
-        # #     if internalCoord and not converged:
-        # #         notes = 'Internal coordinate error, trying cartesian\n'
-        # #         print "Optimizing TS in cartesian"
-        # #         self.createInputFile(2)
-        # #         converged = self.run()
-        # #         shutil.copy(self.outputFilePath, self.outputFilePath+'.TS2.log')
-        # # else:
-        # #     converged = self.verifyOutputFile()
-        # 
-        # if not converged:
-        #     # Check for convergence failures
-        #     complete, convergenceFailure = self.checkComplete(self.outputFilePath)
-        #     if convergenceFailure:
-        #         # Rerun the calculation with `scf=qc`
-        #         self.createInputFile(1, fromDoubleEnded=fromDoubleEnded, optEst=optRC, scf=True)
-        #         converged, internalCoord = self.run()
-        #         if internalCoord:
-        #             self.createInputFile(2, scf=True)
-        #             converged = self.run()
-        #         shutil.copy(self.outputFilePath, self.outputFilePath+'.QC.log')
 
         return converged
 
@@ -651,7 +612,7 @@ class QMReaction:
         """
         # Check SQL database for transition state
         # self.checkSQL('/scratch/westgroup')
-
+        
         successfulTS = self.optimizeTS(labels, fromDoubleEnded=fromDoubleEnded)
         if not successfulTS:
             notes = 'TS not converged\n'
@@ -695,61 +656,6 @@ class QMReaction:
         self.reactantGeom.uniqueID = self.uniqueID
 
         labels, atomMatch = self.getLabels(reactant)
-        
-        if os.path.exists(os.path.join(self.fileStore, self.uniqueID + '.data')):
-            estFilePath = self.getFilePath('Est{0}'.format(self.outputFileExtension))
-            rcFilePath = self.getFilePath('RxnC{0}'.format(self.outputFileExtension))
-            if os.path.exists(estFilePath):
-                parser = cclib.parser.Gaussian(estFilePath)
-                parser.logger.setLevel(logging.ERROR) #cf. http://cclib.sourceforge.net/wiki/index.php/Using_cclib#Additional_information
-                cclib_data = parser.parse()
-                atomNums = cclib_data.atomnos
-                atomCoords = cclib_data.atomcoords[-1]
-                
-                atom1 = Atom(element=getElement(int(atomNums[labels[0]])), coords=atomCoords[labels[0]])
-                atom2 = Atom(element=getElement(int(atomNums[labels[1]])), coords=atomCoords[labels[1]])
-                atom3 = Atom(element=getElement(int(atomNums[labels[2]])), coords=atomCoords[labels[2]])
-
-                at12 = getDistance(atom1, atom2)
-                at23 = getDistance(atom2, atom3)
-                at13 = getDistance(atom1, atom3)
-                
-                with open(os.path.join(self.fileStore, 'fzEstDists.txt'), 'w') as distFile:
-                    distFile.write('d12: {0:.6f}, d13: {1:.6f}, d23: {2:.6f}'.format(at12, at13, at23))
-            if os.path.exists(rcFilePath):
-                parser = cclib.parser.Gaussian(rcFilePath)
-                parser.logger.setLevel(logging.ERROR) #cf. http://cclib.sourceforge.net/wiki/index.php/Using_cclib#Additional_information
-                cclib_data = parser.parse()
-                atomNums = cclib_data.atomnos
-                atomCoords = cclib_data.atomcoords[-1]
-                
-                atom1 = Atom(element=getElement(int(atomNums[labels[0]])), coords=atomCoords[labels[0]])
-                atom2 = Atom(element=getElement(int(atomNums[labels[1]])), coords=atomCoords[labels[1]])
-                atom3 = Atom(element=getElement(int(atomNums[labels[2]])), coords=atomCoords[labels[2]])
-
-                at12 = getDistance(atom1, atom2)
-                at23 = getDistance(atom2, atom3)
-                at13 = getDistance(atom1, atom3)
-                
-                with open(os.path.join(self.fileStore, 'rcDists.txt'), 'w') as distFile:
-                    distFile.write('d12: {0:.6f}, d13: {1:.6f}, d23: {2:.6f}'.format(at12, at13, at23))
-            parser = cclib.parser.Gaussian(self.outputFilePath)
-            parser.logger.setLevel(logging.ERROR) #cf. http://cclib.sourceforge.net/wiki/index.php/Using_cclib#Additional_information
-            cclib_data = parser.parse()
-            atomNums = cclib_data.atomnos
-            atomCoords = cclib_data.atomcoords[-1]
-            
-            atom1 = Atom(element=getElement(int(atomNums[labels[0]])), coords=atomCoords[labels[0]])
-            atom2 = Atom(element=getElement(int(atomNums[labels[1]])), coords=atomCoords[labels[1]])
-            atom3 = Atom(element=getElement(int(atomNums[labels[2]])), coords=atomCoords[labels[2]])
-
-            at12 = getDistance(atom1, atom2)
-            at23 = getDistance(atom2, atom3)
-            at13 = getDistance(atom1, atom3)
-            
-            with open(os.path.join(self.fileStore, 'optDists.txt'), 'w') as distFile:
-                distFile.write('d12: {0:.6f}, d13: {1:.6f}, d23: {2:.6f}'.format(at12, at13, at23))
-            return True, "Already done!"
         
         tsBM = self.editMatrix(reactant, tsBM, labels)
         atoms = len(reactant.atoms)
@@ -977,6 +883,7 @@ class QMReaction:
                     bondType = 'N#N'
                 elif (bond.atom1.symbol=='C' and bond.atom2.symbol=='N') or (bond.atom1.symbol=='N' and bond.atom2.symbol=='C'):
                     bondType = 'N#C'
+            import ipdb; ipdb.set_trace()
             try:
                 bondDict[bondType] += 1
             except KeyError:
@@ -1100,7 +1007,7 @@ class QMReaction:
                 allAtoms = []
                 for atom in qmMolecule.molecule.atoms:
                     allAtoms.append(atom.symbol)
-                bondDict = self.getBonds(qmMolecule)
+                bondDict = {}#self.getBonds(qmMolecule)
                 self.writeCanThermStatMech(allAtoms, bondDict, qmMolecule.molecule.multiplicity, qmMolecule.outputFilePath, symmetry=1)#qmMolecule.pointGroup.symmetryNumber)
                 molecules.append(qmMolecule)
                 # log = GaussianLog(qmMolecule.outputFilePath)
