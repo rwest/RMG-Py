@@ -31,7 +31,12 @@ class NWChem:
 	inputFileExtension = '.nw'
 	outputFileExtension = '.out'
 	
-	executablePath = distutils.spawn.find_executable('nwchem') or os.path.join(os.getenv('NWCHEM_TOP'), 'bin', os.getenv('NWCHEM_TARGET'), 'nwchem')
+	executablePath = distutils.spawn.find_executable('nwchem')
+        if executablePath is None:
+            try: 
+                executablePath = os.path.join(os.getenv('NWCHEM_TOP'), 'bin', os.getenv('NWCHEM_TARGET'), 'nwchem')
+            except AttributeError:
+                executablePath = ""
 	
 	multiplicityKeywords = {
 							 1: '',
