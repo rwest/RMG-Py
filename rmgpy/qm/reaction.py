@@ -143,7 +143,7 @@ class QMReaction:
         """
         Set up the fileStore and scratchDirectory if not already done.
         """
-        subPath = os.path.join('Reactions', self.reaction.family.label, self.uniqueID, self.settings.method)
+        subPath = os.path.join('Reactions', self.reaction.family, self.uniqueID, self.settings.method)
 
         setFileStore = True
         setScratch = True

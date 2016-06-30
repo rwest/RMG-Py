@@ -205,6 +205,7 @@ class QMCalculator():
                 qm_molecule_calculator = rmgpy.qm.mopac.MopacMolPM7(molecule, settings)
             else:
                 raise Exception("Unknown QM method '{0}' for mopac".format(settings.method))
+            thermo0 = qm_molecule_calculator.generateThermoData()
         elif self.settings.software == 'gaussian':
             if self.settings.method == 'pm3':
                 qm_molecule_calculator = rmgpy.qm.gaussian.GaussianMolPM3(molecule, settings)
@@ -214,14 +215,15 @@ class QMCalculator():
                 qm_molecule_calculator = rmgpy.qm.gaussian.GaussianMolB3LYP(molecule, settings)
             else:
                 raise Exception("Unknown QM method '{0}' for gaussian".format(settings.method))
+            thermo0 = qm_molecule_calculator.generateThermoData()
         elif self.settings.software == 'nwchem':
             if self.settings.method =='hf':
                 qm_molecule_calculator = rmgpy.qm.nwchem.NWChemMolHF(molecule, settings)
             else:
                 raise Exception("Unknown QM method '{0}' for nwchem".format(settings.method))
+            thermo0 = qm_molecule_calculator.generateThermoData()
         else:
             raise Exception("Unknown QM software '{0}'".format(settings.software))
-        thermo0 = qm_molecule_calculator.generateThermoData()
         return thermo0
     
     def getKineticData(self, reaction, tsDatabase):
@@ -256,7 +258,8 @@ class QMCalculator():
                 raise Exception("Unknown QM method '{0}' for nwchem".format(self.settings.method))
         else:
             raise Exception("Unknown QM software '{0}'".format(self.settings.software))
-        return thermo0
+        kinetics0 = qm_reaction_calculator.generateKineticData()
+        return kinetics0
     
 
 def save(rmg):
