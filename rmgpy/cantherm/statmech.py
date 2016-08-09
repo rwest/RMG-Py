@@ -526,7 +526,7 @@ def applyEnergyCorrections(E0, modelChemistry, atoms, bonds):
     if modelChemistry == 'CBS-QB3':
         atomEnergies = {'H':-0.499818 + SOC['H'], 'N':-54.520543 + SOC['N'], 'O':-74.987624+ SOC['O'], 'C':-37.785385+ SOC['C'], 'P':-340.817186+ SOC['P'], 'S': -397.657360+ SOC['S'], 'F': -99.64226+ SOC['F'], 'Cl': -459.68291+ SOC['Cl'], 'Si': -288.931308 + SOC['Si']}
     elif modelChemistry == 'G3':
-        atomEnergies = {'H':-0.5010030, 'N':-54.564343, 'O':-75.030991, 'C':-37.827717, 'P':-341.116432, 'S': -397.961110}
+        atomEnergies = {'H':-0.5010030, 'N':-54.564343, 'O':-75.030991, 'C':-37.827717, 'P':-341.116432, 'S': -397.961110, 'Si': -289.223010}
     elif modelChemistry == 'M08SO/MG3S*': # * indicates that the grid size used in the [QChem} electronic 
         #structure calculation utilized 75 radial points and 434 angular points 
         #(i.e,, this is specified in the $rem section of the [qchem] input file as: XC_GRID 000075000434)
@@ -681,6 +681,8 @@ def applyEnergyCorrections(E0, modelChemistry, atoms, bonds):
         bondEnergies = { 'C-H': 0.25, 'C-C': -1.89, 'C=C': -0.40, 'C#C': -1.50,
             'O-H': -1.09, 'C-O': -1.18, 'C=O': -0.01, 'N-H': 1.36, 'C-N': -0.44, 
             'C#N': 0.22, 'C-S': -2.35, 'S=O': -5.19, 'S-H': -0.52,'C-Cl': -3.82,'C-F': -1.26, }    
+    elif modelChemistry == 'G3':
+        bondEnergies = { 'H-H': 0.42, 'Si-H': 0.16, 'Si2S-H': 0.95, 'Si-Si': 0.35, 'Si2S-Si': 0.57, 'Si=Si': -0.66, }
     else:
         
         logging.warning('No bond energy correction found for model chemistry: {0}'.format(modelChemistry))
