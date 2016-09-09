@@ -681,8 +681,11 @@ class TSGroups(Database):
                     A.append(Arow); b.append(brow)
                     
                     for group in groups:
-                        groupComments[group.label].add("{0!s}".format(template))
-            
+                        try:
+                            groupComments[group].add("{0!s}".format(template))
+                        except:
+                            groupComments[group.label].add("{0!s}".format(template))
+                            
             if len(A) == 0:
                 logging.warning('Unable to fit kinetics groups for family "{0}"; no valid data found.'.format(self.label))
                 return
@@ -707,10 +710,16 @@ class TSGroups(Database):
                         groups = [group]
                         groups.extend(self.ancestors(group))
                         for g in groups:
-                            if g.label not in [top.label for top in self.top]:
-                                ind = groupList.index(g)
-                                stdev[ind] += variance
-                                count[ind] += 1
+                            try:
+                                if g.label not in [top.label for top in self.top]:
+                                    ind = groupList.index(g)
+                                    stdev[ind] += variance
+                                    count[ind] += 1
+                            except:
+                                if g not in [top for top in self.top]:
+                                    ind = groupList.index(g)
+                                    stdev[ind] += variance
+                                    count[ind] += 1
                     stdev[-1] += variance
                     count[-1] += 1
                 
@@ -729,8 +738,8 @@ class TSGroups(Database):
                         groupValues[entry].append(x[-1,t])
                         groupUncertainties[entry].append(ci[-1])
                         groupCounts[entry].append(count[-1])
-                    elif entry.label in [group.label for group in groupList]:
-                        index = [group.label for group in groupList].index(entry.label)
+                    elif entry in [group for group in groupList]:
+                        index = [group for group in groupList].index(entry)
                         groupValues[entry].append(x[index,t])
                         groupUncertainties[entry].append(ci[index])
                         groupCounts[entry].append(count[index])
