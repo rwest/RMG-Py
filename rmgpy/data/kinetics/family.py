@@ -639,7 +639,7 @@ class KineticsFamily(Database):
                                                             reverseRecipe=None,
                                                             forbidden=None
                                                             )
-                                                            
+            self.transitionStates.family.ownReverse = self.ownReverse
             self.transitionStates.load(path, local_context, global_context)
 
     def loadTemplate(self, reactants, products, ownReverse=False):
