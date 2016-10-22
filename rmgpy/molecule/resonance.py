@@ -389,6 +389,8 @@ def generateLonePairsTripleBondIsomers(mol):
         for atom2, bond12 in atom1.edges.items():
             if atom2.lonePairs < 1:
                 continue
+            if bond12.order != 'S':  # don't have Q bond so can't doubly increment a D
+                continue
             # Adjust to (potentially) new resonance isomer
             bond12.incrementOrder()
             bond12.incrementOrder()
