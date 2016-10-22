@@ -50,6 +50,61 @@ class ResonanceTest(unittest.TestCase):
         mol = Molecule(SMILES="C1CC1c1ccccc1")
         generateAromaticResonanceIsomers(mol)
 
+    def test_cySiSiHSiH(self):
+        """Resonance isomers of cSiSiHSiH"""
+        mol = Molecule(SMILES="[Si]1=[SiH][SiH]=1")
+        isomers = generateResonanceIsomers(mol)
+
+        mol1 = Molecule().fromAdjacencyList("""
+                    1 Si u0 p0 c0 {2,S} {3,D} {5,S}
+                    2 Si u0 p0 c0 {1,S} {3,D} {4,S}
+                    3 Si u0 p0 c0 {1,D} {2,D}
+                    4 H  u0 p0 c0 {2,S}
+                    5 H  u0 p0 c0 {1,S}""")
+
+        mol2 = Molecule().fromAdjacencyList("""
+                    1 Si u0 p0 c0 {2,D} {3,S} {4,S}
+                    2 Si u0 p0 c0 {1,D} {3,S} {5,S}
+                    3 Si u0 p1 c0 {1,S} {2,S}
+                    4 H  u0 p0 c0 {1,S}
+                    5 H  u0 p0 c0 {2,S}""")
+
+        self.assertEqual(mol1.toInChI(), mol2.toInChI(), "Molecules aren't the same")
+        mol1_structures = mol1.generateResonanceIsomers()
+        self.assertEqual(len(mol1_structures), 2, "Didn't make 2 resonance structures for mol1")
+        self.assertTrue(mol1_structures[1].isIsomorphic(mol2), "Other structure isn't mol2")
+        mol2_structures = mol2.generateResonanceIsomers()
+        self.assertEqual(len(mol2_structures), 2, "Didn't make 2 resonance structures for mol2")
+        self.assertTrue(mol2_structures[1].isIsomorphic(mol1), "Other structure isn't mol1")
+
+    def test_cySiSiSiH2(self):
+        """Resonance isomers of cSiSiSiH2"""
+        mol = Molecule(SMILES="[Si]1[Si][SiH2]1")
+        isomers = generateResonanceIsomers(mol)
+
+        mol1 = Molecule().fromAdjacencyList("""
+                    1 Si u0 p0 c0 {2,S} {3,S} {4,S} {5,S}
+                    2 Si u0 p1 c0 {1,S} {3,S}
+                    3 Si u0 p1 c0 {1,S} {2,S}
+                    4 H  u0 p0 c0 {1,S}
+                    5 H  u0 p0 c0 {1,S}""")
+
+        mol2 = Molecule().fromAdjacencyList("""
+                    1 Si u0 p0 c0 {2,S} {3,S} {4,S} {5,S}
+                    2 Si u0 p0 c0 {1,S} {3,T}
+                    3 Si u0 p0 c0 {1,S} {2,T}
+                    4 H  u0 p0 c0 {1,S}
+                    5 H  u0 p0 c0 {1,S}""")
+
+        self.assertEqual(mol1.toInChI(), mol2.toInChI(), "Molecules aren't the same")
+        mol1_structures = mol1.generateResonanceIsomers()
+        self.assertEqual(len(mol1_structures), 2, "Didn't make 2 resonance structures for mol1")
+        self.assertTrue(mol1_structures[1].isIsomorphic(mol2), "Other structure isn't mol2")
+        mol2_structures = mol2.generateResonanceIsomers()
+        self.assertEqual(len(mol2_structures), 2, "Didn't make 2 resonance structures for mol2")
+        self.assertTrue(mol2_structures[1].isIsomorphic(mol1), "Other structure isn't mol1")
+
+
     @work_in_progress
     def testMultipleKekulizedResonanceIsomers(self):
         "Test we can make both Kekulized resonance isomers of 2-Hydroxy-1-methylbenzene"
