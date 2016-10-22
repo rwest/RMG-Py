@@ -58,6 +58,11 @@ class ResonanceTest(unittest.TestCase):
             2 O u0 p1 c0 {1,T} {4,S}
             3 H u0 p0 c0 {1,S}
             4 H u0 p0 c0 {2,S}""",
+            """
+            1 N u0 p1 c0 {2,D} {3,S}
+            2 O u0 p2 c0 {1,D}
+            3 O u1 p2 c0 {1,S}
+            """,
                         ]:
             mol = Molecule().fromAdjacencyList(adjlist)
             generateResonanceIsomers(mol)
