@@ -35,7 +35,7 @@ class ResonanceTest(unittest.TestCase):
         mol = Molecule(SMILES="[CH]1CCC1c1ccccc1")
         generateResonanceIsomers(mol)
 
-    def test_C9H10_aro(self):
+    def test_C9H10(self):
         """CyclopropylBenzene, aromatic bonds"""
         mol = Molecule(SMILES="C1CC1c1ccccc1")
         generateResonanceIsomers(mol)
