@@ -50,6 +50,18 @@ class ResonanceTest(unittest.TestCase):
         mol = Molecule(SMILES="C1CC1c1ccccc1")
         generateAromaticResonanceIsomers(mol)
 
+    def test_miscellaneous(self):
+        """Miscellaneous molecules don't crash resonance isomer generation"""
+        for adjlist in [
+            """
+            1 O u0 p1 c0 {2,T} {3,S}
+            2 O u0 p1 c0 {1,T} {4,S}
+            3 H u0 p0 c0 {1,S}
+            4 H u0 p0 c0 {2,S}""",
+                        ]:
+            mol = Molecule().fromAdjacencyList(adjlist)
+            generateResonanceIsomers(mol)
+
     def test_cySiSiHSiH(self):
         """Resonance isomers of cSiSiHSiH"""
         mol = Molecule(SMILES="[Si]1=[SiH][SiH]=1")
