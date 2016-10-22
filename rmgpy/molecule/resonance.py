@@ -391,6 +391,8 @@ def generateLonePairsTripleBondIsomers(mol):
                 continue
             if bond12.order != 'S':  # don't have Q bond so can't doubly increment a D
                 continue
+            if atom1.isNitrogen() or atom2.isNitrogen():
+                continue  # TODO! fix this
             # Adjust to (potentially) new resonance isomer
             bond12.incrementOrder()
             bond12.incrementOrder()
