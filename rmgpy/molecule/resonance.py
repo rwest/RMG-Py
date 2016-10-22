@@ -1,4 +1,5 @@
 import cython
+import itertools
 import logging
 
 import rmgpy.molecule.generator as generator
@@ -351,7 +352,7 @@ def generateTriangleLonePairIsomers(mol):
     """
     Generate the conversion of lone pairs to multiple bonds in triangles.
     
-    SiH=SiH-Si:-   <->   SiH-SiH=Si=
+    SiH1=SiH-Si:-1   <->   SiH1-SiH=Si=1
     """
     cython.declare(molecule=Molecule, rdAtomIndices=dict, aromatic=cython.bint, aromaticBonds=list)
     cython.declare(rings=list, ring0=list, i=cython.int, atom1=Atom, atom2=Atom, bond=Bond)
@@ -363,9 +364,13 @@ def generateTriangleLonePairIsomers(mol):
     rings = [ring0 for ring0 in molecule.getSmallestSetOfSmallestRings() if len(ring0) == 3]
     if not rings:
         return []
+
+    # First convert 1=2-3:-1 to 1-2=3=1
     for ring0 in rings:
-        for atom1 in ring0:
-            pass
+        for atom1, atom2, atom3 in itertools.permutations(ring0, 3):
+            if atom3.lonePairs < 1: continue
+            bond12 = molecule.getBond(atom1, atom2)
+            if bond12.order != 'D': continue
     "THIS IS NOT FINISHED!"
     return []
 
