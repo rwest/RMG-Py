@@ -1,4 +1,5 @@
 import cython
+import logging
 
 import rmgpy.molecule.generator as generator
 import rmgpy.molecule.parser as parser
@@ -23,7 +24,11 @@ def generateResonanceIsomers(mol):
         
         newIsomers = []
         for algo in populate_resonance_generation_algorithm():
-            newIsomers.extend(algo(isomer))
+            try:
+                newIsomers.extend(algo(isomer))
+            except:
+                logging.error("Problem calling {!r} on {}\n{}".format(algo, isomer.toSMILES(), isomer.toAdjacencyList()))
+                raise
 
         for newIsomer in newIsomers:
             # Append to isomer list if unique
