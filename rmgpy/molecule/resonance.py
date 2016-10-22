@@ -370,12 +370,45 @@ def generateLonePairsTripleBondIsomers(mol):
     
     -Si:-Si:-  <->  -Si#Si-
     """
-    #for bond in mol.getBonds():
-    #    if bond.isTriple():
-    #        pass
-    "THIS IS NOT FINISHED!"
-    return []
+    isomers = []
 
+    # First convert adjacent lone pairs to triple bond
+    for atom1 in mol.vertices:
+        if atom1.lonePairs < 1:
+            continue
+        for atom2, bond12 in atom1.edges.items():
+            if atom2.lonePairs < 1:
+                continue
+            # Adjust to (potentially) new resonance isomer
+            bond12.incrementOrder()
+            bond12.incrementOrder()
+            atom1.decrementLonePairs()
+            atom2.decrementLonePairs()
+
+            # Make a copy of isomer
+            isomer = mol.copy(deep=True)
+            # Also copy the connectivity values, since they are the same
+            # for all resonance forms
+            for index in range(len(mol.vertices)):
+                v1 = mol.vertices[index]
+                v2 = isomer.vertices[index]
+                v2.connectivity1 = v1.connectivity1
+                v2.connectivity2 = v1.connectivity2
+                v2.connectivity3 = v1.connectivity3
+                v2.sortingLabel = v1.sortingLabel
+            # Restore current isomer
+            bond12.decrementOrder()
+            bond12.decrementOrder()
+            atom1.incrementLonePairs()
+            atom2.incrementLonePairs()
+            # Append to isomer list if unique
+            isomer.updateAtomTypes()
+            isomers.append(isomer)
+
+    # Now convert triple bonds to adjacent lone pairs
+    "NOT COMPLETE"
+
+    return isomers
 
 def populate_resonance_generation_algorithm():
     """

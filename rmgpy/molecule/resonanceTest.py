@@ -99,7 +99,7 @@ class ResonanceTest(unittest.TestCase):
         self.assertEqual(mol1.toInChI(), mol2.toInChI(), "Molecules aren't the same")
         mol1_structures = mol1.generateResonanceIsomers()
         self.assertEqual(len(mol1_structures), 2, "Didn't make 2 resonance structures for mol1")
-        self.assertTrue(mol1_structures[1].isIsomorphic(mol2), "Other structure isn't mol2")
+        self.assertTrue(mol1_structures[1].isIsomorphic(mol2), "Other structure isn't mol2, but \n{}".format(mol1_structures[1].toAdjacencyList()))
         mol2_structures = mol2.generateResonanceIsomers()
         self.assertEqual(len(mol2_structures), 2, "Didn't make 2 resonance structures for mol2")
         self.assertTrue(mol2_structures[1].isIsomorphic(mol1), "Other structure isn't mol1")
