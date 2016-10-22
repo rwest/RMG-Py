@@ -341,6 +341,42 @@ def generate_isomorphic_isomers(mol):
 
     return isomorphic_isomers
 
+
+def generateTriangleLonePairIsomers(mol):
+    """
+    Generate the conversion of lone pairs to multiple bonds in triangles.
+    
+    SiH=SiH-Si:-   <->   SiH-SiH=Si=
+    """
+    cython.declare(molecule=Molecule, rdAtomIndices=dict, aromatic=cython.bint, aromaticBonds=list)
+    cython.declare(rings=list, ring0=list, i=cython.int, atom1=Atom, atom2=Atom, bond=Bond)
+
+    if not mol.isCyclic():
+        return []
+    molecule = mol.copy(deep=True)
+
+    rings = [ring0 for ring0 in molecule.getSmallestSetOfSmallestRings() if len(ring0) == 3]
+    if not rings:
+        return []
+    for ring0 in rings:
+        for atom1 in ring0:
+            pass
+    "THIS IS NOT FINISHED!"
+    return []
+
+def generateLonePairsTripleBondIsomers(mol):
+    """
+    Conversion of a triple bond to two adjacent lone pairs, and back.
+    
+    -Si:-Si:-  <->  -Si#Si-
+    """
+    #for bond in mol.getBonds():
+    #    if bond.isTriple():
+    #        pass
+    "THIS IS NOT FINISHED!"
+    return []
+
+
 def populate_resonance_generation_algorithm():
     """
     A list with the current set of resonance generation algorithms.
@@ -351,6 +387,8 @@ def populate_resonance_generation_algorithm():
         generateN5dd_N5tsResonanceIsomers,
         generateKekulizedResonanceIsomers,
         generateAromaticResonanceIsomers,
+        generateTriangleLonePairIsomers,
+        generateLonePairsTripleBondIsomers
     )
 
 
