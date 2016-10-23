@@ -424,7 +424,8 @@ $(document).ready(function() {
                 <td>{{ "%.2f"|format(spec.thermo.getHeatCapacity(1500) / 4.184) }}</td>
             </tr>
 <tr><td colspan="6" class="thermoComment">
-<div id="thermoComment" class="thermoComment">{{textwrap.fill(spec.thermo.comment,80).replace('\n','<br>')}}</div>
+<div id="thermoComment" class="thermoComment">{{textwrap.fill(spec.thermo.comment,80).replace('\n','<br>')}}
+<br/>{{spec.molecule}}</div>
 </td></tr>
         </table>
     
