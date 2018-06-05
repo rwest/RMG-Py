@@ -372,6 +372,7 @@ class Atom(Vertex):
         self.radicalElectrons += 1
         if self.radicalElectrons <= 0:
             raise gr.ActionError('Unable to update Atom due to GAIN_RADICAL action: Invalid radical electron set "{0}".'.format(self.radicalElectrons))
+        self.updateCharge()
 
     def decrementRadical(self):
         """
@@ -383,6 +384,7 @@ class Atom(Vertex):
         radicalElectrons = self.radicalElectrons = self.radicalElectrons - 1
         if radicalElectrons  < 0:
             raise gr.ActionError('Unable to update Atom due to LOSE_RADICAL action: Invalid radical electron set "{0}".'.format(self.radicalElectrons))
+        self.updateCharge()
 
     def setLonePairs(self,lonePairs):
         """
@@ -692,6 +694,7 @@ class Bond(Edge):
         else:
             raise gr.ActionError('Unable to increment Bond due to CHANGE_BOND action: '+\
             'Bond order "{0}" is greater than 3.'.format(self.order))
+        self.updateCharge()
 
     def decrementOrder(self):
         """
@@ -703,7 +706,8 @@ class Bond(Edge):
         else:
             raise gr.ActionError('Unable to decrease Bond due to CHANGE_BOND action: '+\
             'bond order "{0}" is less than 1.'.format(self.order))
-
+        self.updateCharge()
+        
     def __changeBond(self, order):
         """
         Update the bond as a result of applying a CHANGE_BOND action,
@@ -1025,6 +1029,16 @@ class Molecule(Graph):
                 carbenes += 1
         return carbenes
 
+    def getLonePairCount(self):
+        """
+        Return the number of lone pair electrons.
+        """
+        cython.declare(atom=Atom, lonepairs=cython.short)
+        lonepairs = 0
+        for atom in self.vertices:
+            lonepairs += atom.lonePairs
+        return lonepairs
+
     def getNumAtoms(self, element = None):
         """
         Return the number of atoms in molecule.  If element is given, ie. "H" or "C",
@@ -1040,7 +1054,7 @@ class Molecule(Graph):
                     numAtoms += 1
             return numAtoms
 
-    def getNumberOfRadicalElectrons(self):
+    def getNumberOfRadicalElectrons(self): # This looks like getRadicalCount()!
         """
         Return the total number of radical electrons on all atoms in the
         molecule. In this function, monoradical atoms count as one, biradicals

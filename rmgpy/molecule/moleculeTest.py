@@ -759,6 +759,92 @@ class TestMolecule(unittest.TestCase):
         self.assertEqual( self.molecule[0].getRadicalCount(), sum([atom.radicalElectrons for atom in self.molecule[0].atoms]) )
         self.assertEqual( self.molecule[1].getRadicalCount(), sum([atom.radicalElectrons for atom in self.molecule[1].atoms]) )
         
+    def testUpdateCharge(self):
+        """
+        Test that charge is updated when order, radical count, or lone pairs are updated on CH3.
+        """
+
+        molecule = Molecule().fromSMILES('[CH3]')
+        self.assertEqual(molecule.atoms[0].radicalElectrons, 1) # Radical is on C
+        self.assertEqual(molecule.getNetCharge(), 0) # 0 charge
+
+        # Removing an electron to make a methyl cation
+        molecule.atoms[0].decrementRadical()
+        self.assertEqual(molecule.atoms[0].radicalElectrons, 0)
+        self.assertEqual(molecule.getRadicalCount(), 0)
+        self.assertEqual(molecule.getLonePairCount(), 0)
+        self.assertEqual(molecule.getNetCharge(), 1) # +1 charge
+
+        # Adding an electron to make a methyl anion
+        molecule = Molecule().fromSMILES('[CH3]')
+        molecule.atoms[0].decrementRadical()
+        molecule.atoms[0].incrementLonePairs()
+        self.assertEqual(molecule.atoms[0].radicalElectrons, 0)
+        self.assertEqual(molecule.atoms[0].lonePairs, 1)
+        self.assertEqual(molecule.getRadicalCount(), 0)
+        self.assertEqual(molecule.getLonePairCount(), 1)
+        self.assertEqual(molecule.getNetCharge(), -1) # -1 charge
+
+        # Adding a bond to make methane
+        molecule = Molecule().fromSMILES('[CH3]')
+        molecule.saturate()
+        self.assertEqual(molecule.atoms[0].radicalElectrons, 0)
+        self.assertEqual(molecule.getRadicalCount(), 0)
+        self.assertEqual(molecule.getLonePairCount(), 0)
+        self.assertEqual(molecule.getNetCharge(), 0) # -1 charge
+
+    def testIonFromAdjacencyList(self):
+        """
+        Test that an ion can be made from an adjacency list
+        """
+        # Methyl cation
+        adjlist1 = """
+        1   C u0 p0 c1 {2,S} {3,S} {4,S}
+        2   H u0 p0 c0 {1,S}
+        3   H u0 p0 c0 {1,S}
+        4   H u0 p0 c0 {1,S}
+        """
+        molecule = Molecule().fromAdjacencyList(adjlist1)
+        self.assertEqual(molecule.getNetCharge(), 1)  # +1 charge
+
+        # Methyl anion
+        adjlist2 = """
+        1   C u0 p1 c-1 {2,S} {3,S} {4,S}
+        2   H u0 p0 c0 {1,S}
+        3   H u0 p0 c0 {1,S}
+        4   H u0 p0 c0 {1,S}
+        """
+        molecule = Molecule().fromAdjacencyList(adjlist2)
+        self.assertEqual(molecule.getNetCharge(), -1) # -1 charge
+
+    def testIonFromSMILES(self):
+        """
+        Test that an ion can be made from a SMILES string
+        """
+        # Methyl cation
+        ajlist1 = """
+        1   C u0 p0 c1 {2,S} {3,S} {4,S}
+        2   H u0 p0 c0 {1,S}
+        3   H u0 p0 c0 {1,S}
+        4   H u0 p0 c0 {1,S}
+        """
+        molecule = [Molecule().fromAdjacencyList(adjlist_1)]
+
+        # Methyl anion
+        ajlist2 = """
+        1   C u0 p1 c-1 {2,S} {3,S} {4,S}
+        2   H u0 p0 c0 {1,S}
+        3   H u0 p0 c0 {1,S}
+        4   H u0 p0 c0 {1,S}
+        """
+        molecule.append(Molecule().fromAdjacencyList(adjlist_2))
+
+        molecule2 = Molecule().fromSMILES('[CH3+]') # Methyl cation
+        molecule3 = Molecule().fromSMILES('[CH3-]') # Methyl anion
+
+        self.assertEqual(molecule[0],molecule2)
+        self.assertEqual(molecule[1],molecule3)
+
     def testGetMolecularWeight(self):
         """
         Test the Molecule.getMolecularWeight() method.
