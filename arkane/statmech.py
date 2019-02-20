@@ -1143,6 +1143,7 @@ def assign_frequency_scale_factor(model_chemistry):
                  # 'g3': ,
                  'm08so/mg3s*': 0.983,  # DOI: 10.1021/ct100326h, taken as 'M08-SO/MG3S'
                  'm06-2x/cc-pvtz': 0.955,  # http://cccbdb.nist.gov/vibscalejust.asp
+                 'ccsd(t)/aug-cc-pv(d,t)z':0.956, # (frequencies with M062X/aug-cc-pVTZ) http://cccbdb.nist.gov/vibscalejust.asp
                  # 'klip_1': ,
                  # 'klip_2': ,
                  # 'klip_3': ,
