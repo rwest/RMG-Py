@@ -787,8 +787,9 @@ def applyEnergyCorrections(E0, modelChemistry, atoms, bonds,
         # He, Ne, K, Ca, Ti, Cu, Zn, Ge, Br, Kr, Rb, Ag, Cd, Sn, I, Xe, Cs, Hg, and Pb are taken from CODATA
         # Codata: Cox, J. D., Wagman, D. D., and Medvedev, V. A., CODATA Key Values for Thermodynamics, Hemisphere
         # Publishing Corp., New York, 1989. (http://www.science.uwaterloo.ca/~cchieh/cact/tools/thermodata.html)
+        # Changed Carbon enthalpy of formation to 170.03 kcal/mol form ATcT Tables https://atct.anl.gov/Thermochemical%20Data/version%201.122d/index.php
         atom_hf = {'H': 51.63, 'He': -1.481,
-                  'Li': 37.69, 'Be': 76.48, 'B': 136.2, 'C': 169.98, 'N': 112.53, 'O': 58.99, 'F': 18.47, 'Ne': -1.481,
+                  'Li': 37.69, 'Be': 76.48, 'B': 136.2, 'C': 170.03, 'N': 112.53, 'O': 58.99, 'F': 18.47, 'Ne': -1.481,
                   'Na': 25.69, 'Mg': 34.87, 'Al': 78.23, 'Si': 106.6, 'P': 75.42, 'S': 65.66, 'Cl': 28.59,
                   'K': 36.841, 'Ca': 41.014, 'Ti': 111.2, 'Cu': 79.16, 'Zn': 29.685, 'Ge': 87.1, 'Br': 25.26, 'Kr': -1.481,
                   'Rb': 17.86, 'Ag': 66.61, 'Cd': 25.240, 'Sn': 70.50, 'I': 24.04, 'Xe': -1.481,
