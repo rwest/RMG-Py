@@ -681,6 +681,8 @@ def applyEnergyCorrections(E0, modelChemistry, atoms, bonds,
                 atomEnergies = {'H':-0.499946213243 + SOC['H'], 'N':-54.526406291655 + SOC['N'], 'O':-74.995458316117+ SOC['O'], 'C':-37.788203485235+ SOC['C']}
             elif modelChemistry == 'ccsd(t)-f12/cc-pvdz-f12_h-qz':
                 atomEnergies = {'H':-0.499994558325 + SOC['H'], 'N':-54.526406291655 + SOC['N'], 'O':-74.995458316117+ SOC['O'], 'C':-37.788203485235+ SOC['C']}
+            elif modelChemistry == 'ccsd(t)/aug-cc-pv(d,t)z':
+                atomEnergies = {'H':-0.49998777297075814+ SOC['H'], 'Cl':-459.709483518952 + SOC['Cl'], 'O':-75.005452028965+ SOC['O'], 'C':-37.790518178129+ SOC['C']}
 
             # We are assuming that SOC is included in the Bond Energy Corrections
             elif modelChemistry == 'ccsd(t)-f12/cc-pvdz-f12':
@@ -839,6 +841,10 @@ def applyEnergyCorrections(E0, modelChemistry, atoms, bonds,
                 'O-H':  0.07, 'C-O': 0.25, 'C=O': -0.03, 'O-O': 0.26, 'C-N': -0.20,
                 'C=N': -0.30, 'C#N': -1.33, 'N-O': 1.01, 'N_O': -0.03, 'N=O': -0.26,
                 'N-H':  0.06, 'N-N': -0.23, 'N=N': -0.37, 'N#N': -0.64,}
+        elif modelChemistry == 'ccsd(t)/aug-cc-pv(d,t)z':
+            bondEnergies = {'C-H': 0.46, 'C-C': -0.28, 'C=C': -1.47,
+                'O-H':  -0.73, 'C-O': -0.55, 'C=O': -2.19, 'O-O': -0.51,
+                'H-Cl': 0.0, 'C-Cl':-0.78,'O-Cl':-0.62, 'Cl-Cl':-1.76, 'C-C aromatic':-0.51}
         elif modelChemistry == 'cbs-qb3':
             bondEnergies = {
                 'C-H': -0.11, 'C-C': -0.30, 'C=C': -0.08, 'C#C': -0.64, 'O-H' : 0.02, 'C-O': 0.33, 'C=O': 0.55,  # Table IX: Petersson GA (1998) J. of Chemical Physics, DOI: 10.1063/1.477794
