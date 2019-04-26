@@ -1,12 +1,12 @@
 # <img align="top" src="https://raw.githubusercontent.com/ReactionMechanismGenerator/RMG-Py/master/documentation/source/_static/rmg-logo-small.png"> Reaction Mechanism Generator (RMG)
 
-[![Build status](https://img.shields.io/travis/ReactionMechanismGenerator/RMG-Py/master.svg)](https://travis-ci.org/ReactionMechanismGenerator/RMG-Py)
-[![Codecov report](https://img.shields.io/codecov/c/github/ReactionMechanismGenerator/RMG-Py/master.svg)](https://codecov.io/gh/ReactionMechanismGenerator/RMG-Py)
-[![Codacy report](https://img.shields.io/codacy/grade/5c12cecf3d01400a92ea20e14ca0b880/master.svg)](https://www.codacy.com/app/ReactionMechanismGenerator/RMG-Py/dashboard)
-[![GitHub release](https://img.shields.io/github/release/ReactionMechanismGenerator/RMG-Py.svg)](https://github.com/ReactionMechanismGenerator/RMG-Py/releases)
-[![Anconda](https://img.shields.io/conda/v/rmg/rmg.svg)](https://anaconda.org/rmg/rmg)
-[![Gitter](https://img.shields.io/gitter/room/ReactionMechanismGenerator/RMG-Py.svg)](https://gitter.im/ReactionMechanismGenerator/RMG-Py)
-[![RMG Website](https://img.shields.io/website-up-down-green-red/http/rmg.mit.edu.svg?label=rmg%20website)](http://rmg.mit.edu/)
+# This branch has been retired!
+This 'cat' branch for the heterogeneous catalysis version of RMG called,
+for a while, RMG-Cat, has been retired.
+On 25th April 2019, it was merged into the 'master' branch of the official
+RMG [over here](https://github.com/ReactionMechanismGenerator/RMG-Py).
+On this date, the two branches are exactly equivalent. Development will continue there.
+
 
 ## Description
 This repository contains the Python version of **Reaction Mechanism Generator (RMG)**,
@@ -14,29 +14,6 @@ a tool for automatically generating chemical reaction
 mechanisms for modeling reaction systems including pyrolysis, combustion,
 atmospheric science, and more.
 
-It also includes **Arkane**, the package for calculating thermodynamics, high-pressure-limit
-rate coefficients, and pressure dependent rate coefficients from quantum chemical calculations.
-Arkane is compatible with a variety of ab initio quantum chemistry software programs:
-Gaussian, MOPAC, QChem, and MOLPRO.
-
-*This branch is for the heterogeneous catalysis version!* (be sure to use the corresponding branch in the RMG-database)
-
-## Source Code Repository
-- [RMG Github Repository](https://github.com/ReactionMechanismGenerator/RMG-Py): contains the latest source code for RMG
-- [RMG-database Github Repository](https://github.com/ReactionMechanismGenerator/RMG-database): contains source code for the latest version of the database
-
-## How to Install
-You can either download the source from GitHub and compile yourself, or download the binaries from Anaconda.
-Please see the [Download and Install](http://reactionmechanismgenerator.github.io/RMG-Py/users/rmg/installation/index.html) page for detailed instructions.
-
-## Documentation
-- [RMG Documentation](http://ReactionMechanismGenerator.github.io/RMG-Py/users/rmg/index.html) ([PDF version](https://github.com/ReactionMechanismGenerator/RMG-Py/raw/master/documentation/RMG-Py_and_Arkane_Documentation.pdf))
-- [Arkane Documentation](http://ReactionMechanismGenerator.github.io/RMG-Py/users/arkane/index.html) ([PDF version](https://github.com/ReactionMechanismGenerator/RMG-Py/raw/master/documentation/RMG-Py_and_Arkane_Documentation.pdf))
-- [RMG API Reference](http://reactionmechanismgenerator.github.io/RMG-Py/reference/index.html) ([PDF version](https://github.com/ReactionMechanismGenerator/RMG-Py/raw/master/documentation/RMG-Py_API_Reference.pdf))
-
-## How to Contribute
-Please see the [Contributor Guidelines](https://github.com/ReactionMechanismGenerator/RMG-Py/wiki/RMG-Contributor-Guidelines)
-for details on how to contribute to RMG-Py or RMG-database.
 
 RMG-Py is mostly a product of 
 - [Professor William H. Green's research group](http://cheme.scripts.mit.edu/green-group/) at the 
@@ -44,26 +21,15 @@ RMG-Py is mostly a product of
 - [Professor Richard H. West's research group](http://www.northeastern.edu/comocheng/) at 
 [Northeastern University](http://www.northeastern.edu/). 
 
-This version for heterogeneous catalysis is the result of efforts by
+This version for heterogeneous catalysis was the result of efforts by
 - [C. Franklin Goldsmith](https://vivo.brown.edu/display/cfgoldsm) at [Brown University](https://www.brown.edu/academics/engineering/)
 - [Richard H. West](http://www.che.neu.edu/people/west-richard) at 
 [Northeastern University](http://www.che.neu.edu). 
 
-## How to Give Feedback
+The first release of RMG-Cat was described in 
+**Automatic Generation of Microkinetic Mechanisms for Heterogeneous Catalysis**
+C. Franklin Goldsmith and Richard H. West
+*The Journal of Physical Chemistry C* 2017 121 (18), 9970-9981
+https://doi.org/10.1021/acs.jpcc.7b02133
 
-Please post any issues you may have to the [issues page](https://github.com/ReactionMechanismGenerator/RMG-Py/issues/)
-or drop in to the [chat room](https://gitter.im/ReactionMechanismGenerator/RMG-Py) or email [rmg_dev@mit.edu](mailto:rmg_dev@mit.edu) if you have questions.  
-
-## Useful Links
-
-- [Interactive Website](http://rmg.mit.edu): Visit this site to visualize RMG-generated models, view the databases, and 
-perform thermodynamics and kinetics searches
-- [Wiki](https://github.com/ReactionMechanismGenerator/RMG-Py/wiki): a wiki for developer notes
-- [Issues Page](https://github.com/ReactionMechanismGenerator/RMG-Py/issues/): view current issues and feature requests
-
-## Credits
-
-- [Professor William H. Green's research group](http://cheme.scripts.mit.edu/green-group/) at the 
-[Massachusetts Institute of Technology](http://web.mit.edu/) 
-- [Professor Richard H. West's research group](http://www.northeastern.edu/comocheng/) at 
-[Northeastern University](http://www.northeastern.edu/). 
+<img align="top" src="https://pubs.acs.org/appl/literatum/publisher/achs/journals/content/jpccck/2017/jpccck.2017.121.issue-18/acs.jpcc.7b02133/20170505/images/medium/jp-2017-02133c_0010.gif">
