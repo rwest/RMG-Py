@@ -198,10 +198,15 @@ def readKineticsEntry(entry, speciesDict, Aunits, Eunits):
 
         # Note that the subsequent lines could be in any order
         for line in lines[1:]:
-            kinetics = _readKineticsLine(
-                line=line, reaction=reaction, speciesDict=speciesDict, Eunits=Eunits,
-                kunits=kunits, klow_units=klow_units,
-                kinetics=kinetics)
+            try:
+                kinetics = _readKineticsLine(
+                    line=line, reaction=reaction, speciesDict=speciesDict, Eunits=Eunits,
+                    kunits=kunits, klow_units=klow_units,
+                    kinetics=kinetics)
+            except ChemkinError:
+                logging.error("Could not read kinetics for {0}".format(reaction))
+                # Could raise an error beginning with "Skip reaction!"
+                return None
 
         # Decide which kinetics to keep and store them on the reaction object
         # Only one of these should be true at a time!
@@ -335,13 +340,24 @@ def _readKineticsReaction(line, speciesDict, Aunits, Eunits):
     # search for a third body collider, e.g., '(+M)', '(+m)', or a specific species like '(+N2)', matching `(+anythingOtherThanEndingParenthesis)`:
     collider = re.search('\(\+[^\)]+\)',reactants)
     if collider is not None:
-        collider = collider.group(0) # save string value rather than the object
-        assert collider == re.search('\(\+[^\)]+\)',products).group(0), "Third body colliders in reactants and products of reaction {0} are not identical!".format(reaction)
+        try:
+            collider = collider.group(0) # save string value rather than the object
+            other = re.search('\(\+[^\)]+\)',products).group(0)
+        except AttributeError:
+            raise ChemkinError("Could not identify collider on products side of {}".format(reaction))
+        assert collider.upper() == other.upper(), "Third body colliders in reactants and products of reaction {0} are not identical!".format(reaction)
         extraParenthesis = collider.count('(') -1
         for i in xrange(extraParenthesis):
             collider += ')' # allow for species like N2(5) or CH2(T)(15) to be read as specific colliders, although currently not implemented in Chemkin. See RMG-Py #1070
-        reactants = reactants.replace(collider,'')
-        products = products.replace(collider,'')
+        if collider.lower() in reactants:
+            reactants = reactants.replace(collider.lower(),'')
+        elif collider.upper() in reactants:
+            reactants = reactants.replace(collider.upper(), '')
+        if collider.lower() in products:
+            products = products.replace(collider.lower(),'')
+        elif collider.upper() in products:
+            products = products.replace(collider.upper(), '')
+
         if collider.upper().strip() != "(+M)": # the collider is a specific species, not (+M) or (+m)
             if collider.strip()[2:-1] not in speciesDict: # stripping spaces, '(+' and ')'
                 raise ChemkinError('Unexpected third body collider "{0}" in reaction {1}.'.format(collider.strip()[2:-1], reaction))
@@ -542,12 +558,16 @@ def _readKineticsLine(line, reaction, speciesDict, Eunits, kunits, klow_units, k
                     error_msg = "{0!r} doesn't look like a collision efficiency for species {1} in line {2!r}".format(efficiency,collider.strip(),line)
                     logging.error(error_msg)
                     raise ChemkinError(error_msg)
+
                 if collider.strip() in speciesDict:
                     kinetics['efficiencies'][speciesDict[collider.strip()].molecule[0]] = efficiency
-                else: # try it with capital letters? Not sure whose malformed chemkin files this is needed for.
+                elif collider.strip().upper() in speciesDict: # Trying the uppercase version?
                     kinetics['efficiencies'][speciesDict[collider.strip().upper()].molecule[0]] = efficiency
-        except IndexError:
+                else: # Trying the lowercase version?
+                    kinetics['efficiencies'][speciesDict[collider.strip().lower()].molecule[0]] = efficiency
+        except (IndexError, KeyError): # IndexError if there is no molecule[0], KeyError if the key does not exist in the species dict
             error_msg = 'Could not read collider efficiencies for reaction: {0}.\n'.format(reaction)
+            error_msg += 'Collider {!r} structure not known.\n'.format(collider)
             error_msg += 'The following line was parsed incorrectly:\n{0}'.format(line)
             error_msg += "\n(Case-preserved tokens: {0!r} )".format(case_preserved_tokens)
             raise ChemkinError(error_msg)
@@ -1027,7 +1047,9 @@ cpdef _process_duplicate_reactions(list reactionList):
                                      _kinetics.Arrhenius)):
                         reaction.kinetics.arrhenius.append(reaction2.kinetics)
                     else:
-                        raise ChemkinError('Mixed kinetics for duplicate reaction {0}.'.format(reaction))
+                        logging.info('Mixed kinetics for duplicate reaction {0}.'.format(reaction))
+                        logging.info('Not removing duplicate reaction {0}'.format(reaction))
+                        continue
 
                     duplicateReactionsToRemove.append(reaction2)
                 elif reaction1.kinetics.isPressureDependent() == reaction2.kinetics.isPressureDependent():
@@ -1350,6 +1372,9 @@ def readReactionsBlock(f, speciesDict, readComments = True):
     for kinetics, comments in zip(kineticsList, commentsList):
         try:
             reaction = readKineticsEntry(kinetics, speciesDict, Aunits, Eunits)
+            if reaction is None:
+                logging.warning("Skipping the reaction {0!r} ".format(kinetics))
+                continue
             reaction = readReactionComments(reaction, comments, read = readComments)
         except ChemkinError as e:
             if e.message.startswith("Skip reaction!"):
