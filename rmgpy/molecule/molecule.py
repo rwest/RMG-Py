@@ -875,10 +875,12 @@ class Molecule(Graph):
     `inchi` string representing the molecular structure.
     """
 
-    def __init__(self, atoms=None, symmetry=-1, multiplicity=-187, reactive=True, props=None, inchi='', smiles=''):
+    def __init__(self, atoms=None, symmetry=-1, multiplicity=-187, reactive=True, props=None, inchi='',
+                 smiles='', molecular_term_symbol=''):
         Graph.__init__(self, atoms)
         self.symmetry_number = symmetry
         self.multiplicity = multiplicity
+        self.molecular_term_symbol = molecular_term_symbol
         self.reactive = reactive
         self._fingerprint = None
         self._inchi = None
@@ -1432,7 +1434,7 @@ class Molecule(Graph):
         mapping from `self` to `other` (i.e. the atoms of `self` are the keys,
         while the atoms of `other` are the values). The `other` parameter must
         be a :class:`Molecule` object, or a :class:`TypeError` is raised.
-        Also ensures multiplicities are also equal.
+        Also ensures multiplicities and molecular_term_symbol are also equal.
 
         Args:
             initial_map (dict, optional):          initial atom mapping to use
@@ -1453,12 +1455,13 @@ class Molecule(Graph):
         # check multiplicity
         if self.multiplicity != other.multiplicity:
             return False
-        
+        # check molecular_term_symbol
+        if self.molecular_term_symbol != other.molecular_term_symbol:
+            return False
         # if given an initial map, ensure that it's valid.
         if initial_map:
             if not self.is_mapping_valid(other, initial_map, equivalent=True):
                 return False
-
         if generate_initial_map:
             initial_map = dict()
             for atom in self.atoms:
@@ -1696,6 +1699,14 @@ class Molecule(Graph):
         """
         from rmgpy.molecule.adjlist import from_adjacency_list
 
+        molecular_term_symbol = ''
+        if "molecular_term_symbol" in adjlist:
+            adjlist = adjlist.strip()
+            lines = adjlist.splitlines()
+            for line in lines:
+                if "molecular_term_symbol" in line:
+                    molecular_term_symbol = line.split()[1]
+        self.molecular_term_symbol = molecular_term_symbol
         self.vertices, self.multiplicity = from_adjacency_list(adjlist, group=False, saturate_h=saturate_h)
         self.update_atomtypes(raise_exception=raise_atomtype_exception)
         self.identify_ring_membership()
@@ -1830,7 +1841,8 @@ class Molecule(Graph):
         Convert the molecular structure to a string adjacency list.
         """
         from rmgpy.molecule.adjlist import to_adjacency_list
-        result = to_adjacency_list(self.vertices, self.multiplicity, label=label, group=False, remove_h=remove_h,
+        result = to_adjacency_list(self.vertices, self.multiplicity, molecular_term_symbol=self.molecular_term_symbol,
+                                   label=label, group=False, remove_h=remove_h,
                                    remove_lone_pairs=remove_lone_pairs, old_style=old_style)
         return result
 
