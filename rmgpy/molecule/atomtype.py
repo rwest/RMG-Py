@@ -617,7 +617,7 @@ ATOMTYPES['O4b'].set_actions(increment_bond=[], decrement_bond=[], form_bond=[],
 
 ATOMTYPES['Ne'].set_actions(increment_bond=[], decrement_bond=[], form_bond=[], break_bond=[], increment_radical=['Ne'], decrement_radical=['Ne'], increment_lone_pair=[], decrement_lone_pair=[])
 
-ATOMTYPES['Si'].set_actions(increment_bond=['Si'], decrement_bond=['Si'], form_bond=['Si'], break_bond=['Si'], increment_radical=['Si'], decrement_radical=['Si'], increment_lone_pair=[], decrement_lone_pair=[])
+ATOMTYPES['Si'].set_actions(increment_bond=['Si'], decrement_bond=['Si'], form_bond=['Si'], break_bond=['Si'], increment_radical=['Si'], decrement_radical=['Si'], increment_lone_pair=['Si'], decrement_lone_pair=['Si'])
 ATOMTYPES['Sis'].set_actions(increment_bond=['Sid', 'SiO'], decrement_bond=[], form_bond=['Sis'], break_bond=['Sis'], increment_radical=['Sis'], decrement_radical=['Sis'], increment_lone_pair=[], decrement_lone_pair=[])
 ATOMTYPES['Sid'].set_actions(increment_bond=['Sidd', 'Sit'], decrement_bond=['Sis'], form_bond=['Sid'], break_bond=['Sid'], increment_radical=['Sid'], decrement_radical=['Sid'], increment_lone_pair=[], decrement_lone_pair=[])
 ATOMTYPES['Sidd'].set_actions(increment_bond=[], decrement_bond=['Sid', 'SiO'], form_bond=[], break_bond=[], increment_radical=[], decrement_radical=[], increment_lone_pair=[], decrement_lone_pair=[])
