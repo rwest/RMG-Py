@@ -12,14 +12,14 @@
 # This script performs the same task as the script in `scripts/generateReactions.py` but in visual ipynb format.
 # It can also evaluate the reaction forward and reverse rates at a user selected temperature.
 
-# In[2]:
+# In[1]:
 
 
 import sys, os
 sys.path.insert(0,os.path.expandvars("$RMGpy"))
 
 
-# In[3]:
+# In[2]:
 
 
 from rmgpy.rmg.main import RMG
@@ -31,7 +31,7 @@ from arkane.output import prettify
 
 # Declare database variables here by changing the thermo and reaction libraries, or restrict to certain reaction families.  
 
-# In[5]:
+# In[3]:
 
 
 database = """
@@ -42,6 +42,7 @@ database(
     kineticsDepositories = ['training'],
     kineticsFamilies = [
     'H_Abstraction',
+    'R_Recombination',
     'R_Addition_MultipleBond',
     'intra_H_migration',
     'Intra_R_Add_Endocyclic',
@@ -58,7 +59,7 @@ options(
 
 # List all species you want reactions between
 
-# In[26]:
+# In[4]:
 
 
 speciesList = """
@@ -76,7 +77,7 @@ species(
 """
 
 
-# In[27]:
+# In[5]:
 
 
 # Write input file to disk
@@ -87,7 +88,7 @@ inputFile.write(speciesList)
 inputFile.close()
 
 
-# In[25]:
+# In[6]:
 
 
 # initialize RMG instance
@@ -102,82 +103,121 @@ rmg = RMG(input_file='temp/input.py', output_directory='temp')
 rmg.initialize(**kwargs)
 
 
-# In[34]:
+# In[44]:
 
 
-for n, s in rmg.reaction_model.species_dict.items():
-    print(n)
-    display(s[0])
+from rmgpy.molecule import Molecule
+m = Molecule(smiles='CCCCCCCCCC')
+h = Molecule(smiles='[H]')
+reactions = rmg.database.kinetics.react_molecules(, only_families='H_Abstraction')
+for r in reactions:
+    r.products
 
 
-# In[38]:
+# In[53]:
 
 
-rmg.bimolecular_react
+molecules = defaultdict(set)
+molecules['fuel'].add(Molecule(smiles='CCCCCCCCCC'))
+molecules['H'].add(Molecule(smiles='[H]'))
+molecules
 
 
-# In[17]:
+# In[61]:
+
+
+def union(*args):
+    out = set()
+    for a in args:
+        out.update(molecules[a])
+    return out
+
+
+# In[63]:
+
+
+union('fuel','H')
+
+
+# In[72]:
+
+
+# React fuel with H to get the radicals R
+reactions = rmg.database.kinetics.react_molecules(union('fuel', 'H'), only_families='H_Abstraction')
+for r in reactions:
+    for prod in r.products:
+        if prod.get_formula() == 'H2':
+            continue
+        molecules['R'].add(prod)
+molecules
+
+
+# In[73]:
+
+
+molecules['O2'].add(Molecule(smiles='[O][O]'))
+molecules
+
+
+# In[91]:
+
+
+# React R with O2 to get the ROO
+o2 = list(molecules['O2'])[0]
+for s in molecules['R']:
+    reactions = rmg.database.kinetics.generate_reactions_from_families((s, o2), only_families='R_Recombination')
+    display(s)
+    for r in reactions:
+        print(r)
+        molecules['ROO'].add(r.products[0].molecule[0])
+molecules
+
+
+# In[92]:
+
+
+# Isomerize ROO to get QOOH
+for s in molecules['ROO']:
+    reactions = rmg.database.kinetics.generate_reactions_from_families((s, ), only_families='intra_H_migration')
+    display(s)
+    for r in reactions:
+        print(r)
+        molecules['QOOH'].add(r.products[0].molecule[0])
+molecules
+
+
+# In[93]:
+
+
+# React QOOH with O2 to get the O2QOOH
+o2 = list(molecules['O2'])[0]
+for s in molecules['QOOH']:
+    reactions = rmg.database.kinetics.generate_reactions_from_families((s, o2), only_families='R_Recombination')
+    display(s)
+    for r in reactions:
+        print(r)
+        molecules['OOQOOH'].add(r.products[0].molecule[0])
+molecules
+
+
+# In[95]:
+
+
+print("These are the OOQOOH")
+for m in molecules['OOQOOH']:
+    display(m)
+
+
+# In[96]:
+
+
+# What next? OH + keto-hydroperoxide or HO2 + alkenyl hydroperoxide 
+
+
+# In[ ]:
 
 
 
-
-rmg.reaction_model.enlarge(react_edge=True,
-                           unimolecular_react=rmg.unimolecular_react,
-                           bimolecular_react=rmg.bimolecular_react,
-                           trimolecular_react=rmg.trimolecular_react)
-# Show all core and edge species and reactions in the output
-rmg.reaction_model.output_species_list.extend(rmg.reaction_model.edge.species)
-rmg.reaction_model.output_reaction_list.extend(rmg.reaction_model.edge.reactions)
-
-rmg.save_everything()
-
-rmg.finish()
-
-
-# In[20]:
-
-
-get_ipython().run_line_magic('pinfo', 'RMG')
-
-
-# In[13]:
-
-
-rmg.reaction_model.output_reaction_list
-
-
-# In[6]:
-
-
-# Pick some temperature to evaluate the forward and reverse kinetics
-T = 623.0 # K
-
-
-# In[7]:
-
-
-for rxn in rmg.reactionModel.outputReactionList:
-    print '========================='
-    display(rxn)
-    print 'Reaction Family = {0}'.format(rxn.family)
-    print ''
-    print 'Reactants'
-    for reactant in rxn.reactants:
-        print 'Label: {0}'.format(reactant.label)
-        print 'SMILES: {0}'.format(reactant.molecule[0].toSMILES())
-        print ''
-    print 'Products'
-    for product in rxn.products:
-        print 'Label: {0}'.format(product.label)
-        print 'SMILES: {0}'.format(product.molecule[0].toSMILES())
-    print ''
-    print rxn.toChemkin()
-    print ''
-    print 'Heat of Reaction = {0:.2F} kcal/mol'.format(rxn.getEnthalpyOfReaction(623.0)/4184)
-    print 'Forward kinetics at {0} K: {1:.2E}'.format(T, rxn.getRateCoefficient(T))
-
-    reverseRate = rxn.generateReverseRateCoefficient()
-    print 'Reverse kinetics at {0} K: {1:.2E}'.format(T, reverseRate.getRateCoefficient(T))
 
 
 # In[ ]:
