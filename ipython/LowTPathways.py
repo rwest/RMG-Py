@@ -6,11 +6,9 @@
 # The goal of this notebook is to allow you to generate all the species that would occur by systematically applying known low-temperature pathways to a starting fuel molecule.
 # 
 # You might do this to generate species that you then put into an RMG input file.
-# 
-# It is based on a similar notebook for generating reactions. 
-# 
-# This script performs the same task as the script in `scripts/generateReactions.py` but in visual ipynb format.
-# It can also evaluate the reaction forward and reverse rates at a user selected temperature.
+
+# These are the pathways, from https://doi.org/10.1016/j.combustflame.2015.07.005
+# ![image2.png](attachment:image2.png)
 
 # In[1]:
 
@@ -103,28 +101,17 @@ rmg = RMG(input_file='temp/input.py', output_directory='temp')
 rmg.initialize(**kwargs)
 
 
-# In[44]:
+# In[23]:
 
 
 from rmgpy.molecule import Molecule
-m = Molecule(smiles='CCCCCCCCCC')
-h = Molecule(smiles='[H]')
-reactions = rmg.database.kinetics.react_molecules(, only_families='H_Abstraction')
-for r in reactions:
-    r.products
 
 
-# In[53]:
+# In[24]:
 
 
+from collections import defaultdict
 molecules = defaultdict(set)
-molecules['fuel'].add(Molecule(smiles='CCCCCCCCCC'))
-molecules['H'].add(Molecule(smiles='[H]'))
-molecules
-
-
-# In[61]:
-
 
 def union(*args):
     out = set()
@@ -133,13 +120,21 @@ def union(*args):
     return out
 
 
-# In[63]:
+# In[25]:
+
+
+molecules['fuel'].add(Molecule(smiles='CCCCCCCCCC'))
+molecules['H'].add(Molecule(smiles='[H]'))
+molecules
+
+
+# In[26]:
 
 
 union('fuel','H')
 
 
-# In[72]:
+# In[27]:
 
 
 # React fuel with H to get the radicals R
@@ -152,14 +147,14 @@ for r in reactions:
 molecules
 
 
-# In[73]:
+# In[28]:
 
 
 molecules['O2'].add(Molecule(smiles='[O][O]'))
 molecules
 
 
-# In[91]:
+# In[29]:
 
 
 # React R with O2 to get the ROO
@@ -173,7 +168,7 @@ for s in molecules['R']:
 molecules
 
 
-# In[92]:
+# In[30]:
 
 
 # Isomerize ROO to get QOOH
@@ -186,7 +181,7 @@ for s in molecules['ROO']:
 molecules
 
 
-# In[93]:
+# In[31]:
 
 
 # React QOOH with O2 to get the O2QOOH
@@ -196,22 +191,28 @@ for s in molecules['QOOH']:
     display(s)
     for r in reactions:
         print(r)
-        molecules['OOQOOH'].add(r.products[0].molecule[0])
+        molecules['O2QOOH'].add(r.products[0].molecule[0])
 molecules
 
 
-# In[95]:
+# In[32]:
 
 
 print("These are the OOQOOH")
-for m in molecules['OOQOOH']:
+for m in molecules['O2QOOH']:
     display(m)
 
 
-# In[96]:
+# In[33]:
 
 
-# What next? OH + keto-hydroperoxide or HO2 + alkenyl hydroperoxide 
+# What next? OH + keto-hydroperoxide   or   HO2 + alkenyl hydroperoxide 
+
+
+# In[ ]:
+
+
+
 
 
 # In[ ]:
