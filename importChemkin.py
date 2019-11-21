@@ -623,13 +623,13 @@ class ModelMatcher():
             '[C]':          "1 C u0 p2 c0",
             'excited[OH]':  """
                             multiplicity 2
-                            molecular_term_symbol A^2S+
+                            molecularTermSymbol A^2S+
                             1 O u1 p2 c0 {2,S}
                             2 H u0 p0 c0 {1,S}
                             """, # the 'A' in the molecular term symbol means first excited state
             'excited[CH]':  """
                             multiplicity 2
-                            molecular_term_symbol A^2S+
+                            molecularTermSymbol A^2S+
                             1 C u1 p1 c0 {2,S}
                             2 H u0 p0 c0 {1,S}
                             """, # the 'A' in the molecular term symbol means first excited state
