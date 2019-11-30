@@ -22,6 +22,7 @@ import re
 import codecs
 import traceback
 
+import numpy as np
 import cherrypy
 from cherrypy.lib.static import serve_file
 import json
@@ -1588,6 +1589,8 @@ class ModelMatcher():
                     reverse_rate = reaction.generate_reverse_rate_coefficient()
                 except (rmgpy.reaction.ReactionError, AttributeError, ValueError):
                     out_file.write("Couldn't reverse reaction rate of type {}\n\n".format(type(reaction.kinetics)))
+                except np.linalg.LinAlgError:
+                    out_file.write("LinAlgError trying to reverse reaction rate of type {}\n\n".format(type(reaction.kinetics)))
                 else:
                     reaction.reactants, reaction.products = reaction.products, reaction.reactants
                     reaction.kinetics, reverse_rate = reverse_rate, reaction.kinetics
