@@ -659,6 +659,15 @@ class ModelMatcher():
                             1 C u1 p1 c0 {2,S}
                             2 F u0 p3 c0 {1,S}
                             """,
+            'singlet[N]C=C': """
+                            multiplicity 1
+                            1 N u0 p2 c0 {2,S}
+                            2 C u0 p0 c0 {1,S} {3,D} {4,S}
+                            3 C u0 p0 c0 {2,D} {5,S} {6,S}
+                            4 H u0 p0 c0 {2,S}
+                            5 H u0 p0 c0 {3,S}
+                            6 H u0 p0 c0 {3,S}
+                            """,
             }
 
         for species_label in known_names:
