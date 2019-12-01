@@ -2662,7 +2662,7 @@ $('#thermomatches_count').html("("+json.thermomatches+")");
                 output.append("""
             <form action="edit.html" method="get"><td>
             <input type=hidden name="ck_label" value="{lab}">
-            <input type=text name="SMILES"></td>
+            <input type=text name="smiles"></td>
             <td><input type=submit></td>
             </form>
             """.format(lab=chemkin_label))
@@ -3039,7 +3039,7 @@ $('#thermomatches_count').html("("+json.thermomatches+")");
         output.append("""
             <form action="edit.html" method="get">
             <input type=hidden name="ck_label" value="{lab}">
-            <input type=text name="SMILES" value="{smi}">
+            <input type=text name="smiles" value="{smi}">
             <input type=submit label="Edit">
             </form>
             """.format(lab=ck_label, smi=smiles))
@@ -3077,7 +3077,7 @@ $('#thermomatches_count').html("("+json.thermomatches+")");
         output.append("""
             <form action="edit.html" method="get">
             <input type=hidden name="ck_label" value="{lab}">
-            <input type=text name="SMILES">
+            <input type=text name="smiles">
             <input type=submit>
             </form>
             """.format(lab=ck_label))
