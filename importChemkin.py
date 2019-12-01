@@ -560,7 +560,7 @@ class ModelMatcher():
                     if '!' in line:
                         line, comments = line.split("!",1)
                         if comments:
-                            usermatch = re.match("\s+Confirmed by (.*)",comments)
+                            usermatch = re.match("\s+Confirmed by ([^.]*)",comments)
                             if usermatch:
                                 user = usermatch.group(1)
                     tokens = line.split()
