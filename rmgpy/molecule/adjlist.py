@@ -36,6 +36,7 @@ import re
 import warnings
 
 from rmgpy.exceptions import InvalidAdjacencyListError
+import rmgpy.exceptions
 from rmgpy.molecule.atomtype import get_atomtype
 from rmgpy.molecule.element import get_element, PeriodicSystem
 from rmgpy.molecule.group import GroupAtom, GroupBond
@@ -463,6 +464,11 @@ def from_adjacency_list(adjlist, group=False, saturate_h=False):
     Convert a string adjacency list `adjlist` into a set of :class:`Atom` and
     :class:`Bond` objects.
     """
+
+    def InvalidAdjacencyListError(message):
+        # a factory to return the error with the adjlist appended
+        return rmgpy.exceptions.InvalidAdjacencyListError(message + '\n' +adjlist)
+
     atoms = []
     atom_dict = {}
     bonds = {}
@@ -767,19 +773,24 @@ def from_adjacency_list(adjlist, group=False, saturate_h=False):
     # Consistency checks
     if not group:
         # Molecule consistency check
-        # Electron and valency consistency check for each atom
-        for atom in atoms:
-            ConsistencyChecker.check_partial_charge(atom)
 
-        n_rad = sum([atom.radical_electrons for atom in atoms])
-        absolute_spin_per_electron = 1 / 2.
-        if multiplicity is None:
-            multiplicity = 2 * (n_rad * absolute_spin_per_electron) + 1
+        try:
+            # Electron and valency consistency check for each atom
+            for atom in atoms:
+                ConsistencyChecker.check_partial_charge(atom)
 
-        ConsistencyChecker.check_multiplicity(n_rad, multiplicity)
-        for atom in atoms:
-            ConsistencyChecker.check_hund_rule(atom, multiplicity)
-        return atoms, multiplicity
+            n_rad = sum([atom.radical_electrons for atom in atoms])
+            absolute_spin_per_electron = 1 / 2.
+            if multiplicity is None:
+                multiplicity = 2 * (n_rad * absolute_spin_per_electron) + 1
+
+            ConsistencyChecker.check_multiplicity(n_rad, multiplicity)
+            for atom in atoms:
+                ConsistencyChecker.check_hund_rule(atom, multiplicity)
+            return atoms, multiplicity
+        except rmgpy.exceptions.InvalidAdjacencyListError as e:
+            e.args = e.args + (adjlist,)
+            raise
     else:
         # Currently no group consistency check
         return atoms, multiplicity
