@@ -1369,11 +1369,13 @@ class ThermoDatabase(object):
         Returns:
             None, stores result in self.delta_atomic_adsorption_energy
         """
+        # Pt(111) binding energies
+        # Calculated by Katrin Blondal, December 2019
         reference_binding_energies = {
-            'C': rmgpy.quantity.Energy(-6.750, 'eV/molecule'),
-            'H': rmgpy.quantity.Energy(-2.479, 'eV/molecule'),
-            'O': rmgpy.quantity.Energy(-3.586, 'eV/molecule'),
-            'N': rmgpy.quantity.Energy(-4.352, 'eV/molecule'),
+            'C': rmgpy.quantity.Energy(-7.02515507, 'eV/molecule'),
+            'H': rmgpy.quantity.Energy(-2.75367887, 'eV/molecule'),
+            'O': rmgpy.quantity.Energy(-3.81153179, 'eV/molecule'),
+            'N': rmgpy.quantity.Energy(-4.63224568, 'eV/molecule'),
         }
 
         # Use Pt(111) reference if no binding energies are provided
