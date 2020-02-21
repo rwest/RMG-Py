@@ -947,6 +947,7 @@ class ThermoDatabase(object):
             'longDistanceInteraction_cyclic',
             'longDistanceInteraction_noncyclic',
             'adsorptionPt111',
+            'adsorptionNi111'
         ]
         self.groups = {
             category: ThermoGroups(label=category).load(os.path.join(path, category + '.py'),
@@ -1601,18 +1602,7 @@ class ThermoDatabase(object):
             S298=(0.0, "J/(mol*K)"),
         )
         try:
-            mol_copy = molecule.copy(deep=True)
-            for atom in mol_copy.atoms:
-                if atom.is_surface_site(): #and not atom.is_platinum()
-                    bonds = [(a,bond) for a,bond in atom.bonds.items()]
-                    mol_copy.remove_atom(atom)
-                    Pt = rmgpy.molecule.Atom('Pt')
-                    mol_copy.add_atom(Pt)
-                    for bounded_atom,bond in bonds:
-                        new_bond = rmgpy.molecule.Bond(Pt,bounded_atom,bond.order)
-                        mol_copy.add_bond(new_bond)
-            mol_copy.update()
-            self._add_group_thermo_data(adsorption_thermo, self.groups['adsorptionPt111'], mol_copy, {})
+            self._add_group_thermo_data(adsorption_thermo, self.groups['adsorptionPt111'], molecule, {})
         except (KeyError, DatabaseError):
             logging.error("Couldn't find in adsorption thermo database:")
             logging.error(mol_copy)
