@@ -1268,6 +1268,27 @@ Origin Group AdjList:
             if failed:
                 raise ValueError("Error occured in databaseTest. Please check log warnings for all error messages.")
 
+    def check_surface_thermo_libraries_have_surface_attributes(self, library_name, library):
+        """
+        Test that each entry in the surface thermo database has a 'metal' and 'facet' attribute, describing which metal
+        the data came from
+        """
+
+        for entry in library.entries.values():
+            if 'Pt' in library_name:
+                if entry.metal is not 'Pt':
+                    raise ValueError(f'Expected {entry} metal attribute in {library_name} library to match Pt, but was {entry.metal}')
+            if 'Ni' in library_name:
+                if entry.metal is not 'Ni':
+                    raise ValueError(f'Expected {entry} metal attribute in {library_name} library to match Ni, but was {entry.metal}')
+            if '111' in library_name:
+                if entry.facet is not '111':
+                    raise ValueError(f'Expected {entry} facet attribute in {library_name} library to match 111, but was {entry.facet}')
+            if isinstance(entry.metal, type(None)):
+                raise TypeError(f'Expected a metal attribute for {entry} in {library} library but found None')
+            if isinstance(entry.facet, type(None)):
+                raise TypeError(f'Expected a facet attribute for {entry} in {library} library but found None')
+
     def general_check_nodes_found_in_tree(self, group_name, group):
         """
         This test checks whether nodes are found in the tree, with proper parents.
