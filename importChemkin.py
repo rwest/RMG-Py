@@ -28,6 +28,7 @@ from cherrypy.lib.static import serve_file
 import json
 import threading
 import urllib
+import socket
 
 import rmgpy
 import rmgpy.rmg
@@ -3039,7 +3040,7 @@ $('#thermomatches_count').html("("+json.thermomatches+")");
         try:
             f = urllib.request.urlopen(url, timeout=4)
             response = f.read()
-        except urllib.error.URLError as e:
+        except (urllib.error.URLError, socket.timeout) as e:
             print("Couldn't identify {0}. NCI resolver responded {1} to request for {2}".format(smiles, e, url))
             response = "Unknown"
 
