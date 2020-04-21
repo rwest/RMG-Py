@@ -2411,7 +2411,7 @@ $('#thermomatches_count').html("("+json.thermomatches+")");
             output.extend(['<form action="/thermomatchesmodel.html" method="get">', '<select name="model">'])
             for library in self.rmg_object.database.thermo.libraries.keys():
                 output.append('  <option value="{lib}">{lib}</option>'.format(lib=library))
-            output.extend(['<input type="submit">', '</form>'])
+            output.extend([' </select>', '<input type="submit" />', '</form>'])
             return ('\n'.join(output)) # stop here
         img = self._img
         output = [self.html_head(), '<h1>Thermochemistry Matches with model {}</h1>'.format(model)]
