@@ -648,22 +648,37 @@ class Reaction:
         Return the equilibrium constant for the reaction at the specified
         temperature `T` in K. The `type` parameter lets	you specify the
         quantities used in the equilibrium constant: ``Ka`` for	activities,
-        ``Kc`` for concentrations (default), or ``Kp`` for pressures. Note that
-        this function currently assumes an ideal gas mixture.
+        ``Kc`` for concentrations (default), or ``Kp`` for pressures.  This
+        function assumes a reference pressure of 1e5 Pa for gas phases species
+        and uses the ideal gas law to determine reference concentrations. For 
+        solid surface site species, a reference concentration of 1 is assumed. 
         """
         cython.declare(dGrxn=cython.double, K=cython.double, C0=cython.double, P0=cython.double)
         # Use free energy of reaction to calculate Ka
         dGrxn = self.get_free_energy_of_reaction(T)
         K = np.exp(-dGrxn / constants.R / T)
         # Convert Ka to Kc or Kp if specified
+        # Assume a pressure of 1e5 Pa for gas phase species
         P0 = 1e5
+        # Determine the number of gas phase reactants and products. The change in mols
+        # of gas will be used to determine Kc and Kp since solid species have reference
+        # concentration of 1
+        try:
+            gas_reacts = [spcs for spcs in self.reactants if not spcs.contains_surface_site()]
+            gas_prods = [spcs for spcs in self.products if not spcs.contains_surface_site()]
+        except IndexError:
+            logging.warning(f"Species do not have an rmgpy.molecule.Molecule "  
+                            "Cannot determine phases of species. We will assume "
+                            "ideal gas mixture when calculating Kc and Kp.")
+            gas_reacts = self.reactants
+            gas_prods = self.products
         if type == 'Kc':
             # Convert from Ka to Kc; C0 is the reference concentration
             C0 = P0 / constants.R / T
-            K *= C0 ** (len(self.products) - len(self.reactants))
+            K *= C0 ** (len(gas_prods) - len(gas_reacts))
         elif type == 'Kp':
             # Convert from Ka to Kp; P0 is the reference pressure
-            K *= P0 ** (len(self.products) - len(self.reactants))
+            K *= P0 ** (len(gas_prods) - len(gas_reacts))
         elif type != 'Ka' and type != '':
             raise ReactionError('Invalid type "{0}" passed to Reaction.get_equilibrium_constant(); '
                                 'should be "Ka", "Kc", or "Kp".'.format(type))
