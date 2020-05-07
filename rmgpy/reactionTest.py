@@ -255,8 +255,21 @@ class TestSurfaceReaction(unittest.TestCase):
                                places=0)
 
     def test_get_rate_coefficient_units_from_reaction_order(self):
-
+        """Test a rate units for a surface reaction"""
         self.assertEqual(self.rxn1s.generate_reverse_rate_coefficient().A.units, 'm^2/(mol*s)')
+
+    def test_equilibrium_constant_surface_kc(self):
+        """
+        Test the Reaction.get_equilibrium_constant() method.
+        """
+        Tlist = numpy.arange(400.0, 1600.0, 200.0, numpy.float64)
+        Kclist0 = [float(v) for v in
+                   ['15375.20186', '1.566753', '0.017772', '0.0013485',
+                    '0.000263180', ' 8.73504e-05']]
+        Kclist = self.rxn1s.get_equilibrium_constants(Tlist, type='Kc')
+        for i in range(len(Tlist)):
+            self.assertAlmostEqual(Kclist[i] / Kclist0[i], 1.0, 4)
+
 
 class TestReaction(unittest.TestCase):
     """
