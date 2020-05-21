@@ -367,7 +367,26 @@ class Atom(Vertex):
         """
         Return ``True`` if the atom represents a surface site or ``False`` if not.
         """
-        return self.symbol == 'X'
+        if self.symbol in ('X', 'Pt', 'Cu', 'Ni'):
+            return True
+
+    def is_platinum(self):
+        """
+        Return ``True`` if the atom represents a platinum atom or ``False`` if not.
+        """ 
+        return self.element.number == 78
+
+    def is_nickel(self):
+        """
+        Return ``True`` if the atom represents a nickel atom or ``False`` if not.
+        """ 
+        return self.element.number == 28
+
+    def is_copper(self):
+        """
+        Return ``True`` if the atom represents a copper atom or ``False`` if not.
+        """ 
+        return self.element.number == 29
 
     def is_silicon(self):
         """
@@ -1066,7 +1085,7 @@ class Molecule(Graph):
         """
         cython.declare(atom=Atom)
         for atom in self.atoms:
-            if atom.symbol == 'X':
+            if atom.symbol in ('X','Pt', 'Cu', 'Ni'):
                 return True
         return False
 

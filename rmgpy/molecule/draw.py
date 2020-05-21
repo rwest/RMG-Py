@@ -1308,7 +1308,7 @@ class MoleculeDrawer(object):
                 cr.set_source_rgba(0.6, 0.2, 0.2, 1.0)
             elif heavy_atom == 'I':
                 cr.set_source_rgba(0.5, 0.0, 0.5, 1.0)
-            elif heavy_atom == 'X':
+            elif heavy_atom in ('X','Pt', 'Cu', 'Ni'):
                 cr.set_source_rgba(0.5, 0.25, 0.5, 1.0)
             else:
                 cr.set_source_rgba(0.0, 0.0, 0.0, 1.0)

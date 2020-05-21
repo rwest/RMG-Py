@@ -90,7 +90,7 @@ class ConsistencyChecker(object):
         the theoretical one:
 
         """
-        if atom.symbol == 'X':
+        if atom.symbol in ('X','Pt', 'Cu', 'Ni'):
             return  # because we can't check it.
 
         valence = PeriodicSystem.valence_electrons[atom.symbol]
@@ -284,7 +284,7 @@ def from_old_adjacency_list(adjlist, group=False, saturate_h=False):
                     radical_electrons.append(2); additional_lone_pairs.append(1)
                 elif e == '4V':
                     radical_electrons.append(4); additional_lone_pairs.append(0)
-                elif e == 'X':
+                elif e in ('X','Pt', 'Cu', 'Ni'):
                     if not group:
                         raise InvalidAdjacencyListError(
                             "Error in adjacency list:\n{0}\nNumber of radical electrons = X is not specific enough. "

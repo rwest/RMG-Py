@@ -48,6 +48,7 @@ from rmgpy.ml.estimator import MLEstimator
 from rmgpy.molecule import Molecule, Bond, Group
 from rmgpy.species import Species
 from rmgpy.thermo import NASAPolynomial, NASA, ThermoData, Wilhoit
+from rmgpy.thermo.binding_energies import binding_energies_dict
 
 #: This dictionary is used to add multiplicity to species label
 _multiplicity_labels = {1: 'S', 2: 'D', 3: 'T', 4: 'Q', 5: 'V'}
@@ -1351,6 +1352,26 @@ class ThermoDatabase(object):
         # Return the resulting thermo parameters
         return thermo0
 
+    def get_binding_energies(self, species):
+        
+        if isinstance(species,Species):
+            molecule = species.molecule[0]
+        elif isinstance(species,Molecule):
+            molecule = species
+        
+        if not molecule.contains_surface_site():
+            raise DatabaseError("Can't get binding energy if the species does not contain a surface site.")
+        
+        symbols = list(set([atom.element.symbol for atom in molecule.atoms]))
+        
+        binding_energies = binding_energies_dict['Pt']
+        for symbol in symbols:
+            if symbol in binding_energies_dict:
+                binding_energies = binding_energies_dict[symbol]
+                break
+
+        return binding_energies
+
     def set_delta_atomic_adsorption_energies(self, binding_energies=None):
         """
         Sets and stores the change in atomic binding energy between
@@ -1519,11 +1540,23 @@ class ThermoDatabase(object):
             S298=(0.0, "J/(mol*K)"),
         )
         try:
-            self._add_group_thermo_data(adsorption_thermo, self.groups['adsorptionPt111'], molecule, {})
+            mol_copy = molecule.copy(deep=True)
+            for atom in mol_copy.atoms:
+                if atom.is_surface_site(): #and not atom.is_platinum()
+                    bonds = [(a,bond) for a,bond in atom.bonds.items()]
+                    mol_copy.remove_atom(atom)
+                    Pt = rmgpy.molecule.Atom('Pt')
+                    mol_copy.add_atom(Pt)
+                    for bounded_atom,bond in bonds:
+                        new_bond = rmgpy.molecule.Bond(Pt,bounded_atom,bond.order)
+                        mol_copy.add_bond(new_bond)
+            mol_copy.update()
+            grp = mol_copy.to_group()
+            self._add_group_thermo_data(adsorption_thermo, self.groups['adsorptionPt111'], grp, {})
         except (KeyError, DatabaseError):
             logging.error("Couldn't find in adsorption thermo database:")
-            logging.error(molecule)
-            logging.error(molecule.to_adjacency_list())
+            logging.error(mol_copy)
+            logging.error(mol_copy.to_adjacency_list())
             raise
 
         # (group_additivity=True means it appends the comments)

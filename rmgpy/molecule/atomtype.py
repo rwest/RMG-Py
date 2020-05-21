@@ -241,14 +241,40 @@ Some charged atom types were merged together, and are marked as '*Composite atom
 ATOMTYPES = {}
 
 # Surface sites:
-ATOMTYPES['X']   = AtomType(label='X', generic=[], specific=['Xv', 'Xo'])
+ATOMTYPES['X']   = AtomType(label='X', generic=[], specific=[
+    'Xv', 'Xo',
+    'Pt', 'Pto', 'Ptv',
+    'Cu', 'Cuo', 'Cuv',
+    'Ni', 'Nio', 'Niv',
+    ])
+ATOMTYPES['Pt']   = AtomType(label='Pt', generic=['X'], specific=['Ptv','Pto'])
+ATOMTYPES['Cu']   = AtomType(label='Cu', generic=['X'], specific=['Cuv','Cuo'])
+ATOMTYPES['Ni']   = AtomType(label='Ni', generic=['X'], specific=['Niv','Nio'])
 
 # Vacant surface site:
-ATOMTYPES['Xv']   = AtomType('Xv', generic=['X'], specific=[],
+ATOMTYPES['Xv']   = AtomType('Xv', generic=['X'], specific=['Ptv','Cuv','Niv'],
+                             single=[0], all_double=[0], r_double=[], o_double=[], s_double=[], triple=[0], quadruple=[0],
+                             benzene=[0], lone_pairs=[0])
+ATOMTYPES['Ptv']   = AtomType('Ptv', generic=['X','Xv','Pt'], specific=[],
+                             single=[0], all_double=[0], r_double=[], o_double=[], s_double=[], triple=[0], quadruple=[0],
+                             benzene=[0], lone_pairs=[0])
+ATOMTYPES['Cuv']   = AtomType('Cuv', generic=['X','Xv','Cu'], specific=[],
+                             single=[0], all_double=[0], r_double=[], o_double=[], s_double=[], triple=[0], quadruple=[0],
+                             benzene=[0], lone_pairs=[0])
+ATOMTYPES['Niv']   = AtomType('Niv', generic=['X','Xv','Ni'], specific=[],
                              single=[0], all_double=[0], r_double=[], o_double=[], s_double=[], triple=[0], quadruple=[0],
                              benzene=[0], lone_pairs=[0])
 # Occupied surface site:
-ATOMTYPES['Xo']   = AtomType('Xo', generic=['X'], specific=[],
+ATOMTYPES['Xo']   = AtomType('Xo', generic=['X'], specific=['Pto','Cuo','Nio'],
+                             single=[0, 1], all_double=[0, 1], r_double=[], o_double=[], s_double=[], triple=[0, 1],
+                             quadruple=[0, 1], benzene=[0], lone_pairs=[0])
+ATOMTYPES['Pto']   = AtomType('Pto', generic=['X','Xo','Pt'], specific=[],
+                             single=[0, 1], all_double=[0, 1], r_double=[], o_double=[], s_double=[], triple=[0, 1],
+                             quadruple=[0, 1], benzene=[0], lone_pairs=[0])
+ATOMTYPES['Cuo']   = AtomType('Cuo', generic=['X','Xo','Cu'], specific=[],
+                             single=[0, 1], all_double=[0, 1], r_double=[], o_double=[], s_double=[], triple=[0, 1],
+                             quadruple=[0, 1], benzene=[0], lone_pairs=[0])
+ATOMTYPES['Nio']   = AtomType('Nio', generic=['X','Xo','Ni'], specific=[],
                              single=[0, 1], all_double=[0, 1], r_double=[], o_double=[], s_double=[], triple=[0, 1],
                              quadruple=[0, 1], benzene=[0], lone_pairs=[0])
 
@@ -557,8 +583,17 @@ ATOMTYPES['F1s'] = AtomType('F1s', generic=['R', 'R!H', 'F', 'Val7'], specific=[
 # examples for F1s: HF, [F], FO, CH3F, F2
 
 ATOMTYPES['X'].set_actions(increment_bond=['X'], decrement_bond=['X'], form_bond=['X'], break_bond=['X'], increment_radical=[], decrement_radical=[], increment_lone_pair=[], decrement_lone_pair=[])
+ATOMTYPES['Pt'].set_actions(increment_bond=['Pt'], decrement_bond=['Pt'], form_bond=['Pt'], break_bond=['Pt'], increment_radical=[], decrement_radical=[], increment_lone_pair=[], decrement_lone_pair=[])
+ATOMTYPES['Cu'].set_actions(increment_bond=['Cu'], decrement_bond=['Cu'], form_bond=['Cu'], break_bond=['Cu'], increment_radical=[], decrement_radical=[], increment_lone_pair=[], decrement_lone_pair=[])
+ATOMTYPES['Ni'].set_actions(increment_bond=['Ni'], decrement_bond=['Ni'], form_bond=['Ni'], break_bond=['Ni'], increment_radical=[], decrement_radical=[], increment_lone_pair=[], decrement_lone_pair=[])
 ATOMTYPES['Xv'].set_actions(increment_bond=[], decrement_bond=[], form_bond=['Xo'], break_bond=[], increment_radical=[], decrement_radical=[], increment_lone_pair=[], decrement_lone_pair=[])
+ATOMTYPES['Ptv'].set_actions(increment_bond=[], decrement_bond=[], form_bond=['Pto'], break_bond=[], increment_radical=[], decrement_radical=[], increment_lone_pair=[], decrement_lone_pair=[])
+ATOMTYPES['Cuv'].set_actions(increment_bond=[], decrement_bond=[], form_bond=['Cuo'], break_bond=[], increment_radical=[], decrement_radical=[], increment_lone_pair=[], decrement_lone_pair=[])
+ATOMTYPES['Niv'].set_actions(increment_bond=[], decrement_bond=[], form_bond=['Nio'], break_bond=[], increment_radical=[], decrement_radical=[], increment_lone_pair=[], decrement_lone_pair=[])
 ATOMTYPES['Xo'].set_actions(increment_bond=['Xo'], decrement_bond=['Xo'], form_bond=[], break_bond=['Xv'], increment_radical=[], decrement_radical=[], increment_lone_pair=[], decrement_lone_pair=[])
+ATOMTYPES['Pto'].set_actions(increment_bond=['Pto'], decrement_bond=['Pto'], form_bond=[], break_bond=['Ptv'], increment_radical=[], decrement_radical=[], increment_lone_pair=[], decrement_lone_pair=[])
+ATOMTYPES['Cuo'].set_actions(increment_bond=['Cuo'], decrement_bond=['Cuo'], form_bond=[], break_bond=['Cuv'], increment_radical=[], decrement_radical=[], increment_lone_pair=[], decrement_lone_pair=[])
+ATOMTYPES['Nio'].set_actions(increment_bond=['Nio'], decrement_bond=['Nio'], form_bond=[], break_bond=['Niv'], increment_radical=[], decrement_radical=[], increment_lone_pair=[], decrement_lone_pair=[])
 
 ATOMTYPES['R'].set_actions(increment_bond=['R'], decrement_bond=['R'], form_bond=['R'], break_bond=['R'], increment_radical=['R'], decrement_radical=['R'], increment_lone_pair=['R'], decrement_lone_pair=['R'])
 ATOMTYPES['R!H'].set_actions(increment_bond=['R!H'], decrement_bond=['R!H'], form_bond=['R!H'], break_bond=['R!H'], increment_radical=['R!H'], decrement_radical=['R!H'], increment_lone_pair=['R!H'], decrement_lone_pair=['R!H'])
