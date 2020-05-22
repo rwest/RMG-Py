@@ -1426,3 +1426,22 @@ class ClarTest(unittest.TestCase):
         """
         mol_list = generate_resonance_structures(Molecule(smiles="S1SSS1"), filter_structures=False)
         self.assertEqual(len(mol_list), 10)
+
+    def test_han(self):
+        """Test resonance structure generation for hydroxylammonium nitrate
+
+        Should not crash."""
+        mol_list = generate_resonance_structures(Molecule().from_adjacency_list("""HAN
+ 1  O u0 p3 c-1 {2,S} {10,H}
+ 2  N u0 p0 c+1 {1,S} {3,D} {4,S}
+ 3  O u0 p2 c0 {2,D}
+ 4  O u0 p2 c0 {2,S} {7,S}
+ 5  N u0 p1 c0 {6,S} {8,S} {9,S} {7,H}
+ 6  O u0 p2 c0 {5,S} {10,S}
+ 7  H u0 p0 c0 {4,S} {5,H}
+ 8  H u0 p0 c0 {5,S}
+ 9  H u0 p0 c0 {5,S}
+ 10 H u0 p0 c0 {6,S} {1,H}
+ """))
+        # don't know what the answer should be, my goal is just to not crash!
+        #self.assertEquals(len(mol_list), 1)
