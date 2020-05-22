@@ -253,7 +253,8 @@ def _generate_resonance_structures(mol_list, method_list, keep_isomorphic=False,
         copy                if False, append new resonance structures to input list (default)
                             if True, make a new list with all of the resonance structures
     """
-    cython.declare(index=cython.int, molecule=Molecule, new_mol_list=list, new_mol=Molecule, mol=Molecule)
+    cython.declare(index=cython.int, molecule=Molecule, new_mol_list=list, new_mol=Molecule, 
+                   mol=Molecule, method_result=list)
 
     if copy:
         # Make a copy of the list so we don't modify the input list
@@ -277,7 +278,17 @@ def _generate_resonance_structures(mol_list, method_list, keep_isomorphic=False,
         charge_span = molecule.get_charge_span()
         if octet_deviation <= min_octet_deviation + 2 and charge_span <= min_charge_span + 1:
             for method in method_list:
-                new_mol_list.extend(method(molecule))
+                method_result = method(molecule)
+                for mol in method_result:
+                    if mol.get_net_charge() != 0:
+                        logging.warning(
+                                f'Resonance generation {method!r} on\n{molecule.to_adjacency_list()}'
+                                f'gave a net charged molecule:\n{mol.to_adjacency_list()}'
+                                 'Ions are not yet supported in RMG.'
+                        )
+                    else:
+                        new_mol_list.append(mol)
+
             if octet_deviation < min_octet_deviation:
                 # update min_octet_deviation to make this criterion tighter
                 min_octet_deviation = octet_deviation
