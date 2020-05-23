@@ -1354,23 +1354,83 @@ class ThermoDatabase(object):
 
     def get_binding_energies(self, species):
         
-        if isinstance(species,Species):
+        if isinstance(species, Species):
             molecule = species.molecule[0]
-        elif isinstance(species,Molecule):
+        elif isinstance(species, Molecule):
             molecule = species
         
         if not molecule.contains_surface_site():
             raise DatabaseError("Can't get binding energy if the species does not contain a surface site.")
         
-        symbols = list(set([atom.element.symbol for atom in molecule.atoms]))
+        metal = molecule.props.get('metal',None)
+        facet = molecule.props.get('facet',None)
+        site = molecule.props.get('site',None)
+
+        if metal is None:
+            for atom in molecule.atoms:
+                if atom.is_surface_site():
+                    metal = atom.symbol
+                    break
         
+        # Pt by default
         binding_energies = binding_energies_dict['Pt']
-        for symbol in symbols:
-            if symbol in binding_energies_dict:
-                binding_energies = binding_energies_dict[symbol]
-                break
+        
+        if 'Pt' in symbols: 
+            return binding_energies
+        else:
+            for symbol in symbols:
+                if symbol in binding_energies_dict:
+                    binding_energies = binding_energies_dict[symbol]
+                    break
 
         return binding_energies
+
+    def get_delta_atomic_adsorption_energies(self, species, reset_delta_atomic_adsorption_energy = False):
+        """
+        Sets and stores the change in atomic binding energy between
+        the desired and the Pt(111) default.
+
+        This depends on the two metal surfaces: the reference one used in
+        the database of adsorption energies, and the desired surface.
+
+        If binding_energies are not provided, resets the values to those
+        of the Pt(111) default.
+
+        Args:
+            binding_energies (dict, optional): the desired binding energies with
+                elements as keys and binding energy/unit tuples as values
+
+        Returns:
+            None, stores result in self.delta_atomic_adsorption_energy
+        """
+
+        if reset_delta_atomic_adsorption_energy:
+            self.delta_atomic_adsorption_energy = None
+
+        if self.delta_atomic_adsorption_energy is None:
+            binding_energies = self.get_binding_energies(species)
+        else:
+            return self.delta_atomic_adsorption_energy
+        # Pt(111) binding energies
+        # Calculated by Katrin Blondal, December 2019
+        reference_binding_energies = {
+            'C': rmgpy.quantity.Energy(-7.02515507, 'eV/molecule'),
+            'H': rmgpy.quantity.Energy(-2.75367887, 'eV/molecule'),
+            'O': rmgpy.quantity.Energy(-3.81153179, 'eV/molecule'),
+            'N': rmgpy.quantity.Energy(-4.63224568, 'eV/molecule'),
+        }
+
+        delta_atomic_adsorption_energy = {
+            'C': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
+            'H': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
+            'O': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
+            'N': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
+        }
+
+        for element, deltaEnergy in delta_atomic_adsorption_energy.items():
+            deltaEnergy.value_si = binding_energies[element].value_si - reference_binding_energies[element].value_si
+
+        return delta_atomic_adsorption_energy
 
     def set_delta_atomic_adsorption_energies(self, binding_energies=None):
         """
@@ -1399,19 +1459,19 @@ class ThermoDatabase(object):
             'N': rmgpy.quantity.Energy(-4.63224568, 'eV/molecule'),
         }
 
-        # Use Pt(111) reference if no binding energies are provided
         if binding_energies is None:
-            binding_energies = reference_binding_energies
+            self.delta_atomic_adsorption_energy = None
+        else:
+            self.delta_atomic_adsorption_energy = {
+                'C': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
+                'H': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
+                'O': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
+                'N': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
+            }
 
-        self.delta_atomic_adsorption_energy = {
-            'C': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
-            'H': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
-            'O': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
-            'N': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
-        }
-
-        for element, deltaEnergy in self.delta_atomic_adsorption_energy.items():
-            deltaEnergy.value_si = binding_energies[element].value_si - reference_binding_energies[element].value_si
+            for element, deltaEnergy in self.delta_atomic_adsorption_energy.items():
+                deltaEnergy.value_si = binding_energies[element].value_si - \
+                    reference_binding_energies[element].value_si
 
     def correct_binding_energy(self, thermo, species):
         """
@@ -1457,9 +1517,10 @@ class ThermoDatabase(object):
             thermo = thermo.to_thermo_data()
             find_cp0_and_cpinf(species, thermo)
 
+        delta_atomic_adsorption_energy = self.get_delta_atomic_adsorption_energies(species=species)
         # now edit the adsorptionThermo using LSR
         for element in 'CHON':
-            change_in_binding_energy = self.delta_atomic_adsorption_energy[element].value_si * normalized_bonds[element]
+            change_in_binding_energy = delta_atomic_adsorption_energy[element].value_si * normalized_bonds[element]
             thermo.H298.value_si += change_in_binding_energy
         thermo.comment += " Binding energy corrected by LSR."
         return thermo
@@ -1551,8 +1612,7 @@ class ThermoDatabase(object):
                         new_bond = rmgpy.molecule.Bond(Pt,bounded_atom,bond.order)
                         mol_copy.add_bond(new_bond)
             mol_copy.update()
-            grp = mol_copy.to_group()
-            self._add_group_thermo_data(adsorption_thermo, self.groups['adsorptionPt111'], grp, {})
+            self._add_group_thermo_data(adsorption_thermo, self.groups['adsorptionPt111'], mol_copy, {})
         except (KeyError, DatabaseError):
             logging.error("Couldn't find in adsorption thermo database:")
             logging.error(mol_copy)

@@ -90,7 +90,7 @@ class ConsistencyChecker(object):
         the theoretical one:
 
         """
-        if atom.symbol in ('X','Pt', 'Cu', 'Ni'):
+        if atom.symbol in ('X', 'Pt', 'Cu', 'Ni', 'Ag', 'Au', 'Pd', 'Rh', 'Ir', 'Ru'):
             return  # because we can't check it.
 
         valence = PeriodicSystem.valence_electrons[atom.symbol]
@@ -284,7 +284,7 @@ def from_old_adjacency_list(adjlist, group=False, saturate_h=False):
                     radical_electrons.append(2); additional_lone_pairs.append(1)
                 elif e == '4V':
                     radical_electrons.append(4); additional_lone_pairs.append(0)
-                elif e in ('X','Pt', 'Cu', 'Ni'):
+                elif e in ('X', 'Pt', 'Cu', 'Ni', 'Ag', 'Au', 'Pd', 'Rh', 'Ir', 'Ru'):
                     if not group:
                         raise InvalidAdjacencyListError(
                             "Error in adjacency list:\n{0}\nNumber of radical electrons = X is not specific enough. "
@@ -468,6 +468,9 @@ def from_adjacency_list(adjlist, group=False, saturate_h=False):
     atom_dict = {}
     bonds = {}
     multiplicity = None
+    metal = None
+    facet = None
+    site = None
 
     adjlist = adjlist.strip()
     lines = adjlist.splitlines()
@@ -497,33 +500,45 @@ def from_adjacency_list(adjlist, group=False, saturate_h=False):
         if len(lines) == 0:
             raise InvalidAdjacencyListError('No atoms specified in adjacency list.')
 
-    # Interpret the second line if it contains a multiplicity
-    if lines[0].split()[0] == 'multiplicity':
+    # Interpret the second line if it contains a multiplicity, metal, site, and/or facet
+    has_mult, has_metal, has_facet, has_site = [
+        prop in lines[0].split() for prop in ('multiplicity', 'metal', 'facet', 'site')]    
+    if any([has_mult, has_metal, has_facet, has_site]):
         line = lines.pop(0)
-        if group:
-            match = re.match(r'\s*multiplicity\s+\[\s*(\d(?:,\s*\d)*)\s*\]\s*$', line)
-            if not match:
-                rematch = re.match(r'\s*multiplicity\s+x\s*$', line)
-                if not rematch:
-                    raise InvalidAdjacencyListError("Invalid multiplicity line '{0}'. Should be a list like "
-                                                    "'multiplicity [1,2,3]' or a wildcard 'multiplicity x'".format(line))
+        if has_metal:
+            match = re.search(r'\s*metal\s+(\S+)\s*', line)
+            if match: metal = match.group(1)
+        if has_facet:
+            match = re.search(r'\s*facet\s+(\S+)\s*', line)
+            if match: facet = match.group(1)
+        if has_site:
+            match = re.search(r'\s*site\s+(\S+)\s*', line)
+            if match: site = match.group(1)
+        if has_mult:
+            line = lines.pop(0)
+            if group:
+                match = re.match(r'\s*multiplicity\s+\[\s*(\d(?:,\s*\d)*)\s*\]\s*', line)
+                if not match:
+                    rematch = re.match(r'\s*multiplicity\s+x\s*$', line)
+                    if not rematch:
+                        raise InvalidAdjacencyListError("Invalid multiplicity line '{0}'. Should be a list like "
+                                                        "'multiplicity [1,2,3]' or a wildcard 'multiplicity x'".format(line))
+                else:
+                    # should match "multiplicity [1]" or " multiplicity   [ 1, 2, 3 ]" or " multiplicity [1,2,3]"
+                    # and whatever's inside the [] (excluding leading and trailing spaces) should be captured as group 1.
+                    # If a wildcard is desired, this line can be omitted or replaced with 'multiplicity x'
+                    # Multiplicities must be only one digit (i.e. less than 10)
+                    # The (?:,\s*\d)* matches patters like ", 2" 0 or more times, but doesn't capture them (because of the leading ?:)
+                    multiplicities = match.group(1).split(',')
+                    multiplicity = [int(i) for i in multiplicities]
             else:
-                # should match "multiplicity [1]" or " multiplicity   [ 1, 2, 3 ]" or " multiplicity [1,2,3]"
-                # and whatever's inside the [] (excluding leading and trailing spaces) should be captured as group 1.
-                # If a wildcard is desired, this line can be omitted or replaced with 'multiplicity x'
-                # Multiplicities must be only one digit (i.e. less than 10)
-                # The (?:,\s*\d)* matches patters like ", 2" 0 or more times, but doesn't capture them (because of the leading ?:)
-                multiplicities = match.group(1).split(',')
-                multiplicity = [int(i) for i in multiplicities]
-        else:
-            match = re.match(r'\s*multiplicity\s+\d+\s*$', line)
-            if not match:
-                raise InvalidAdjacencyListError("Invalid multiplicity line '{0}'. Should be an integer like "
-                                                "'multiplicity 2'".format(line))
-            multiplicity = int(line.split()[1])
-        if len(lines) == 0:
-            raise InvalidAdjacencyListError('No atoms specified in adjacency list: \n{0}'.format(adjlist))
-
+                match = re.match(r'\s*multiplicity\s+\d+\s*$', line)
+                if not match:
+                    raise InvalidAdjacencyListError("Invalid multiplicity line '{0}'. Should be an integer like "
+                                                    "'multiplicity 2'".format(line))
+                multiplicity = int(line.split()[1])
+            if len(lines) == 0:
+                raise InvalidAdjacencyListError('No atoms specified in adjacency list: \n{0}'.format(adjlist))
     mistake1 = re.compile(r'\{[^}]*\s+[^}]*\}')
     # Iterate over the remaining lines, generating Atom or GroupAtom objects
     for line in lines:
@@ -700,6 +715,14 @@ def from_adjacency_list(adjlist, group=False, saturate_h=False):
             if isotope != -1:
                 atom.element = get_element(atom.number, isotope)
 
+        if atom.is_surface_site():
+            if metal:
+                atom.props['metal'] = metal
+            if facet:
+                atom.props['facet'] = facet
+            if site:
+                atom.props['site'] = site
+
         # Add the atom to the list
         atoms.append(atom)
         atom_dict[aid] = atom
@@ -813,11 +836,11 @@ def to_adjacency_list(atoms, multiplicity, label=None, group=False, remove_h=Fal
         if multiplicity:
             # Functional group should have a list of possible multiplicities.  
             # If the list is empty, then it does not need to be written
-            adjlist += 'multiplicity [{0!s}]\n'.format(','.join(str(i) for i in multiplicity))
+            adjlist += 'multiplicity [{0!s}]'.format(','.join(str(i) for i in multiplicity))
     else:
         assert isinstance(multiplicity, int), "Molecule should have an integer multiplicity"
         if multiplicity != 1 or any(atom.radical_electrons for atom in atoms):
-            adjlist += 'multiplicity {0!r}\n'.format(multiplicity)
+            adjlist += 'multiplicity {0!r}'.format(multiplicity)
 
     # Determine the numbers to use for each atom
     atom_numbers = {}
@@ -825,8 +848,20 @@ def to_adjacency_list(atoms, multiplicity, label=None, group=False, remove_h=Fal
     for atom in atoms:
         if remove_h and atom.element.symbol == 'H' and atom.label == '':
             continue
+        if atom.is_surface_site():
+            metal = atom.props.get('metal', None)
+            facet = atom.props.get('facet', None)
+            site = atom.props.get('site', None)
+            if metal and "metal" not in adjlist: 
+                adjlist += ' metal {0}'.format(metal)
+            if facet and "facet" not in adjlist:
+                adjlist += ' facet {0}'.format(facet)
+            if site and "site" not in adjlist: 
+                adjlist += ' site {0}'.format(site)
         atom_numbers[atom] = '{0:d}'.format(index + 1)
         index += 1
+    
+    adjlist += '\n'
 
     atom_labels = dict([(atom, '{0}'.format(atom.label)) for atom in atom_numbers])
 

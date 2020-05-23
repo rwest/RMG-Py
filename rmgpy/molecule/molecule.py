@@ -367,7 +367,7 @@ class Atom(Vertex):
         """
         Return ``True`` if the atom represents a surface site or ``False`` if not.
         """
-        if self.symbol in ('X', 'Pt', 'Cu', 'Ni'):
+        if self.symbol in ('X', 'Pt', 'Cu', 'Ni', 'Ag', 'Au', 'Pd', 'Rh', 'Ir', 'Ru'):
             return True
 
     def is_platinum(self):
@@ -907,6 +907,8 @@ class Molecule(Graph):
         self._inchi = None
         self._smiles = None
         self.props = props or {}
+        if self.contains_surface_site():
+            self.set_surface_props()
 
         if inchi and smiles:
             logging.warning('Both InChI and SMILES provided for Molecule instantiation, '
@@ -1085,7 +1087,7 @@ class Molecule(Graph):
         """
         cython.declare(atom=Atom)
         for atom in self.atoms:
-            if atom.symbol in ('X','Pt', 'Cu', 'Ni'):
+            if atom.symbol in ('X', 'Pt', 'Cu', 'Ni', 'Ag', 'Au', 'Pd', 'Rh', 'Ir', 'Ru'):
                 return True
         return False
 
@@ -1154,6 +1156,7 @@ class Molecule(Graph):
         if sort_atoms:
             self.sort_atoms()
         self.identify_ring_membership()
+        self.set_surface_props()
 
     def get_formula(self):
         """
@@ -1213,6 +1216,21 @@ class Molecule(Graph):
         for atom in self.vertices:
             radicals += atom.radical_electrons
         return radicals
+
+    def get_surface_props(self):
+
+        if not self.contains_surface_site():
+            return {}
+
+        for atom in self.atoms:
+            if atom.is_surface_site():
+                return atom.props
+
+    def set_surface_props(self):
+        
+        props = self.get_surface_props()
+        for prop,value in props.items():
+            self.props[prop] = value
 
     def get_singlet_carbene_count(self):
         """
@@ -1556,6 +1574,8 @@ class Molecule(Graph):
         # Compare element counts
         element_count = self.get_element_count()
         for element, count in group.elementCount.items():
+            if element == 'X': #fix this
+                continue
             if element not in element_count:
                 return False
             elif element_count[element] < count:
@@ -1627,6 +1647,8 @@ class Molecule(Graph):
         # Compare element counts
         element_count = self.get_element_count()
         for element, count in group.elementCount.items():
+            if element == 'X':
+                continue
             if element not in element_count:
                 return []
             elif element_count[element] < count:
@@ -1716,6 +1738,7 @@ class Molecule(Graph):
         self.vertices, self.multiplicity = from_adjacency_list(adjlist, group=False, saturate_h=saturate_h)
         self.update_atomtypes(raise_exception=raise_atomtype_exception)
         self.identify_ring_membership()
+        self.set_surface_props()
 
         # Check if multiplicity is possible
         n_rad = self.get_radical_count()
@@ -2222,7 +2245,8 @@ class Molecule(Graph):
             group_atoms[atom] = gr.GroupAtom(atomtype=[atom.atomtype],
                                              radical_electrons=[atom.radical_electrons],
                                              charge=[atom.charge],
-                                             lone_pairs=[atom.lone_pairs]
+                                             lone_pairs=[atom.lone_pairs],
+                                             props = atom.props,
                                              )
 
         group = gr.Group(atoms=list(group_atoms.values()), multiplicity=[self.multiplicity])

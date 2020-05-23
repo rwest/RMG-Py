@@ -594,6 +594,12 @@ class GroupAtom(Vertex):
                               'Pt': 0,
                               'Cu': 0,
                               'Ni': 0,
+                              'Ag': 0,
+                              'Au': 0,
+                              'Pd': 0,
+                              'Rh': 0,
+                              'Ir': 0,
+                              'Ru': 0,
                               }
 
         for element_label in allElements:
@@ -630,7 +636,8 @@ class GroupAtom(Vertex):
             radical_electrons=self.radical_electrons[0] if self.radical_electrons else default_atom.radical_electrons,
             charge=new_charge,
             lone_pairs=new_lone_pairs,
-            label=self.label if self.label else default_atom.label
+            label=self.label if self.label else default_atom.label,
+            props = self.props
         )
 
         # For some reason the default when no lone pairs is set to -100,
@@ -1109,6 +1116,21 @@ class Group(Graph):
                 return True
         return False
 
+    def get_surface_props(self):
+
+        if not self.contains_surface_site():
+            return {}
+
+        for atom in self.atoms:
+            if atom.is_surface_site():
+                return atom.props
+
+    def set_surface_props(self):
+        
+        props = self.get_surface_props()
+        for prop,value in props.items():
+            self.props[prop] = value
+
     def is_surface_site(self):
         """Returns ``True`` iff the group is nothing but a surface site 'X'."""
         return len(self.atoms) == 1 and self.atoms[0].is_surface_site()
@@ -1188,6 +1210,7 @@ class Group(Graph):
 
         self.update_connectivity_values()
         self.update_fingerprint()
+        self.set_surface_props()
 
     def update_charge(self):
         """
