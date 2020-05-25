@@ -1118,11 +1118,11 @@ class KineticsFamily(Database):
                 product, training_set=True)
             dHrxn += product.thermo.get_enthalpy(298)
         
-        if dHrxn > 1E6:  # 1000 kJ/mol
+        if dHrxn > 1E5:  # 100 kJ/mol
             alpha = 0.50
-        elif dHrxn > -1E4: # -10 kJ/mol
-            alpha = 0.25
         elif dHrxn > -1E5: # -100 kJ/mol
+            alpha = 0.25
+        elif dHrxn > -5E5: # -500 kJ/mol
             alpha = 0.10
         else:
             alpha = 0.01
@@ -1270,11 +1270,11 @@ class KineticsFamily(Database):
                 product.thermo = thermo_database.get_thermo_data(product, training_set=True)
                 dHrxn -= product.thermo.get_enthalpy(298)  # thermo in reverse
         
-            if dHrxn > 1E6:  # 1000 kJ/mol
+            if dHrxn > 1E5:  # 100 kJ/mol
                 alpha = 0.50
-            elif dHrxn > -1E4: # -10 kJ/mol
-                alpha = 0.25
             elif dHrxn > -1E5: # -100 kJ/mol
+                alpha = 0.25
+            elif dHrxn > -5E5: # -500 kJ/mol
                 alpha = 0.10
             else:
                 alpha = 0.01
