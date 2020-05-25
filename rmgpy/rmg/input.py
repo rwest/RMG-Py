@@ -132,12 +132,14 @@ def convert_binding_energies(bindingEnergies):
         raise InputError("bindingEnergies should be None (for default) or a dict.")
     new_dict = {}
     for label, binding_energies_dict in bindingEnergies.items():
+        sub_dict = {}
         for element in 'CHON':
             try:
-                new_dict[label][element] = Energy(bindingEnergies[element])
+                sub_dict[element] = Energy(binding_energies_dict[element])
             except KeyError:
                 logging.error('Element {} missing from bindingEnergies dictionary'.format(element))
                 raise
+        new_dict[label] = sub_dict
     return new_dict
 
 def species(label, structure, reactive=True):
