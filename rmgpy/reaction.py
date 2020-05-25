@@ -231,15 +231,17 @@ class Reaction:
         # set new degeneracy
         self._degeneracy = new
 
-    def change_metal(self, metal, facet=None, site=None, change_barrier=False, thermo_database=None, alpha=0.5):
+    def change_metal(self, metal, facet=None, site=None, change_barrier=False, alpha=0.5):
         
         if not self.is_surface_reaction():
             return self
 
-        rxn = Reaction(reactants=[Species(molecule=[m.molecule[0].copy(deep=True)], label=m.label)
-                            for m in entry.item.reactants],
-                        products=[Species(molecule=[m.molecule[0].copy(deep=True)], label=m.label)
-                            for m in entry.item.products])
+        # rxn = Reaction(reactants=[Species(molecule=[m.molecule[0].copy(deep=True)], label=m.label)
+        #                     for m in entry.item.reactants],
+        #                 products=[Species(molecule=[m.molecule[0].copy(deep=True)], label=m.label)
+        #                     for m in entry.item.products])
+
+        rxn = self.copy()
         
         if change_barrier:
             dHrxn_old = 0.0
@@ -252,8 +254,7 @@ class Reaction:
                 mol = reactant.molecule[0].copy(deep=True)
                 mol.clear_labeled_atoms()
                 spcs = Species(molecule=[mol])
-                spcs.thermo = thermo_database.get_thermo_data(spcs, training_set=True)
-                dHrxn_old -= spcs.thermo.get_enthalpy(298)
+                dHrxn_old -= spcs.get_enthalpy(298)
             for atom in reactant.molecule[0].atoms:
                 if atom.is_surface_site():
                     if "metal" in atom.props: atom.props.pop("metal")
@@ -267,15 +268,13 @@ class Reaction:
                 mol = reactant.molecule[0].copy(deep=True)
                 mol.clear_labeled_atoms()
                 spcs = Species(molecule=[mol])
-                spcs.thermo = thermo_database.get_thermo_data(spcs, training_set=True)
-                dHrxn_new -= spcs.thermo.get_enthalpy(298)
+                dHrxn_new -= spcs.get_enthalpy(298)
         for product in rxn.products:
             if change_barrier:
                 mol = product.molecule[0].copy(deep=True)
                 mol.clear_labeled_atoms()
                 spcs = Species(molecule=[mol])
-                spcs.thermo = thermo_database.get_thermo_data(spcs, training_set=True)
-                dHrxn_old += spcs.thermo.get_enthalpy(298)
+                dHrxn_old += spcs.get_enthalpy(298)
             for atom in product.molecule[0].atoms:
                 if atom.is_surface_site():
                     if "metal" in atom.props: old_metal = atom.props.pop("metal")
@@ -289,8 +288,7 @@ class Reaction:
                 mol = product.molecule[0].copy(deep=True)
                 mol.clear_labeled_atoms()
                 spcs = Species(molecule=[mol])
-                spcs.thermo = thermo_database.get_thermo_data(spcs, training_set=True)
-                dHrxn_new += spcs.thermo.get_enthalpy(298)
+                dHrxn_new += spcs.get_enthalpy(298)
     
         if change_barrier:
             ddH = dHrxn_new - dHrxn_old
@@ -307,10 +305,10 @@ class Reaction:
                 n=deepcopy(self.kinetics.n),
                 Ea=(Ea, 'J/mol'),
                 Tmin=deepcopy(self.kinetics.Tmin),
-                Tmax=deepcopy(self.kinetics.Tmax)
+                Tmax=deepcopy(self.kinetics.Tmax),
+                comment=deepcopy(self.kinetics.comment),
             )
-            rxn.kinetics.comment += self.kinetics.comment += " Corrected from {0} to {1}".format(
-                old_metal, metal)
+            rxn.kinetics.comment += " Corrected from {0} to {1}".format(old_metal, metal)
             return rxn
 
         rxn.kinetics = deepcopy(self.kinetics)
