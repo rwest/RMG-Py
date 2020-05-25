@@ -194,7 +194,7 @@ cdef class Molecule(Graph):
 
     cpdef list find_isomorphism(self, Graph other, dict initial_map=?, bint save_order=?, bint strict=?)
 
-    cpdef bint is_subgraph_isomorphic(self, Graph other, dict initial_map=?, bint generate_initial_map=?, bint save_order=?) except -2
+    cpdef bint is_subgraph_isomorphic(self, Graph other, dict initial_map=?, bint generate_initial_map=?, bint save_order=?, bint check_metals=?) except -2
 
     cpdef list find_subgraph_isomorphisms(self, Graph other, dict initial_map=?, bint save_order=?)
 

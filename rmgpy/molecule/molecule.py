@@ -1555,7 +1555,7 @@ class Molecule(Graph):
         result = Graph.find_isomorphism(self, other, initial_map, save_order=save_order, strict=strict)
         return result
 
-    def is_subgraph_isomorphic(self, other, initial_map=None, generate_initial_map=False, save_order=False):
+    def is_subgraph_isomorphic(self, other, initial_map=None, generate_initial_map=False, save_order=False, check_metals=True):
         """
         Returns :data:`True` if `other` is subgraph isomorphic and :data:`False`
         otherwise. The `initial_map` attribute can be used to specify a required
@@ -1574,6 +1574,16 @@ class Molecule(Graph):
                 'Got a {0} object for parameter "other", when a Group object is required.'.format(other.__class__))
         group = other
 
+        if check_metals and self.contains_surface_site():
+            if not other.contains_surface_site():
+                return False
+            if self.props.get('metal') != other.props.get('metal'):
+                return False
+            if self.props.get('facet') != other.props.get('facet'):
+                return False
+            if self.props.get('site') != other.props.get('site'):
+                return False
+                
         # Check multiplicity
         if group.multiplicity:
             if self.multiplicity not in group.multiplicity: return False
