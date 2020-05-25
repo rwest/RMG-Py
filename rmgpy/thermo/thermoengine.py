@@ -122,7 +122,11 @@ def generate_thermo_data(spc, thermo_class=NASA, solvent_name=''):
         logging.debug('Could not obtain the thermo database. Not generating thermo...')
         return None
 
-    thermo0 = thermodb.get_thermo_data(spc)
+    try:
+        thermo0 = thermodb.get_thermo_data(spc)
+    except:
+        logging.exception(f"Problem generating thermo data for {spc!r}.")
+        raise
 
     # 1. maybe only submit cyclic core
     # 2. to help radical prediction, HBI should also
