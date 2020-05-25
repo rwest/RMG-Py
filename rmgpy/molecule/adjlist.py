@@ -515,7 +515,6 @@ def from_adjacency_list(adjlist, group=False, saturate_h=False):
             match = re.search(r'\s*site\s+(\S+)\s*', line)
             if match: site = match.group(1)
         if has_mult:
-            line = lines.pop(0)
             if group:
                 match = re.match(r'\s*multiplicity\s+\[\s*(\d(?:,\s*\d)*)\s*\]\s*', line)
                 if not match:
