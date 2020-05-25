@@ -860,7 +860,8 @@ def to_adjacency_list(atoms, multiplicity, label=None, group=False, remove_h=Fal
         atom_numbers[atom] = '{0:d}'.format(index + 1)
         index += 1
     
-    adjlist += '\n'
+    if not adjlist.endswith('\n'):
+        adjlist += '\n'
 
     atom_labels = dict([(atom, '{0}'.format(atom.label)) for atom in atom_numbers])
 
