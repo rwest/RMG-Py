@@ -281,11 +281,14 @@ def _generate_resonance_structures(mol_list, method_list, keep_isomorphic=False,
                 method_result = method(molecule)
                 for mol in method_result:
                     if mol.get_net_charge() != 0:
+                        pass
+                        """
                         logging.warning(
                                 f'Resonance generation {method!r} on\n{molecule.to_adjacency_list()}'
                                 f'gave a net charged molecule:\n{mol.to_adjacency_list()}'
                                  'Ions are not yet supported in RMG.'
                         )
+                        """
                     else:
                         new_mol_list.append(mol)
 
