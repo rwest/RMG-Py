@@ -48,7 +48,7 @@ from rmgpy.ml.estimator import MLEstimator
 from rmgpy.molecule import Molecule, Bond, Group
 from rmgpy.species import Species
 from rmgpy.thermo import NASAPolynomial, NASA, ThermoData, Wilhoit
-from rmgpy.thermo.binding_energies import binding_energies_dict
+from rmgpy.thermo.bindingenergies import BindingEnergies
 
 #: This dictionary is used to add multiplicity to species label
 _multiplicity_labels = {1: 'S', 2: 'D', 3: 'T', 4: 'Q', 5: 'V'}
@@ -582,7 +582,92 @@ def saturate_ring_bonds(ring_submol):
 
 
 ################################################################################
+class ThermoSurface(Database):
+    """
+    A class for working with the RMG thermodynamics Surface.
+    """
 
+    def __init__(self, label='', name='', short_desc='', long_desc='', metal=None, site=None, facet=None):
+        Database.__init__(self, label=label, name=name, short_desc=short_desc, long_desc=long_desc, metal=metal, site=site, facet=facet)
+
+    def load_entry(self,
+                   index,
+                   label,
+                   bindingEnergies,
+                   surfaceSiteDensity=None,
+                   reference=None,
+                   referenceType='',
+                   shortDesc='',
+                   longDesc='',
+                   rank=None,
+                   metal=None,
+                   facet=None,
+                   site=None,
+                   ):
+        """
+        Method for parsing entries in database files.
+        Note that these argument names are retained for backward compatibility.
+        """
+
+        # Internal checks for adding entry to the thermo library
+        if label in list(self.entries.keys()):
+            raise DatabaseError('Found a duplicate molecule with label {0} in the thermo library {1}. '
+                                'Please correct your library.'.format(label, self.name))
+        
+        if isinstance(bindingEnergies, str):
+            data = bindingEnergies
+        else:
+            data = BindingEnergies(binding_energies=bindingEnergies, surface_site_density=surfaceSiteDensity,
+                                label=label, metal=metal, facet=facet, site=site, comment=shortDesc)
+        
+        self.entries[label] = Entry(
+            index=index,
+            label=label,
+            item=None,
+            data=data,
+            reference=reference,
+            reference_type=referenceType,
+            short_desc=shortDesc,
+            long_desc=longDesc.strip(),
+            rank=rank,
+            metal=metal,
+            facet=facet,
+            site=site,
+        )
+
+    def save_entry(self, f, entry):
+        """
+        Write the given `entry` in the thermo database to the file object `f`.
+        """
+
+        f.write('entry(\n')
+        f.write('    index = {0:d},\n'.format(entry.index))
+        f.write('    label = "{0}",\n'.format(entry.label))
+        f.write('    bindingEnergies = {\n')
+        for atom, energy in entry.data.binding_energies.items():
+            f.write('        {0} : {1!r},\n'.format(atom, energy))
+        f.write('    },')
+        if entry.data.surface_site_denisty is not None:
+            f.write('    surfaceSiteDensity = {0!r},\n'.format(
+                entry.data.surface_site_density))
+        if entry.data.metal is not None:
+            f.write('    metal = {0},\n'.format(entry.data.metal))
+        if entry.data.facet is not None:
+            f.write('    facet = {0},\n'.format(entry.data.facet))
+        if entry.data.site is not None:
+            f.write('    site = {0},\n'.format(entry.data.site))
+        if entry.reference is not None:
+            f.write('    reference = {0!r},\n'.format(entry.reference))
+        if entry.reference_type != "":
+            f.write('    referenceType = "{0}",\n'.format(entry.reference_type))
+        f.write(f'    shortDesc = """{entry.short_desc.strip()}""",\n')
+        f.write(f'    longDesc = \n"""\n{entry.long_desc.strip()}\n""",\n')
+        if entry.rank:
+            f.write("    rank = {0},\n".format(entry.rank))
+
+        f.write(')\n\n')
+
+################################################################################
 class ThermoDepository(Database):
     """
     A class for working with the RMG thermodynamics depository.
@@ -833,6 +918,7 @@ class ThermoDatabase(object):
     """
 
     def __init__(self):
+        self.surface = {}
         self.depository = {}
         self.libraries = {}
         self.groups = {}
@@ -846,13 +932,14 @@ class ThermoDatabase(object):
         self.global_context = {}
 
         # Catalyst properties
-        self.set_delta_atomic_adsorption_energies()
+            # self.set_delta_atomic_adsorption_energies()
 
     def __reduce__(self):
         """
         A helper function used when pickling a ThermoDatabase object.
         """
         d = {
+            'surface': self.surface,
             'depository': self.depository,
             'libraries': self.libraries,
             'groups': self.groups,
@@ -864,12 +951,13 @@ class ThermoDatabase(object):
         """
         A helper function used when unpickling a ThermoDatabase object.
         """
+        self.surface = d['surface']
         self.depository = d['depository']
         self.libraries = d['libraries']
         self.groups = d['groups']
         self.library_order = d['library_order']
 
-    def load(self, path, libraries=None, depository=True):
+    def load(self, path, libraries=None, surface=None, depository=True):
         """
         Load the thermo database from the given `path` on disk, where `path`
         points to the top-level folder of the thermo database.
@@ -879,7 +967,9 @@ class ThermoDatabase(object):
         else:
             self.depository = {}
         self.load_libraries(os.path.join(path, 'libraries'), libraries)
+        self.load_surface(os.path.join(path, 'surface'), surface)
         self.load_groups(os.path.join(path, 'groups'))
+
 
     def load_depository(self, path):
         """
@@ -892,6 +982,54 @@ class ThermoDatabase(object):
             'radical': ThermoDepository().load(os.path.join(path, 'radical.py'),
                                                self.local_context, self.global_context)
         }
+
+    def load_surface(self, path, surface=None):
+        """
+        Load the thermo database from the given `path` on disk, where `path`
+        points to the top-level folder of the thermo database.
+        
+        If no libraries are given, all are loaded.
+        """
+        
+        #################
+        def assign_data_from_labels(library):
+
+            for label, entry in library.entries.items():
+                if isinstance(entry.data, str):
+                    try:
+                        entry.data = library.entries[entry.data].data
+                    except:
+                        logging.warning('Could not assign data for Entry "{0}" in Surface library {1}'.format(
+                            label, library.label))
+        ##################
+
+        self.surface = {}
+        if surface is None:
+            for (root, dirs, files) in os.walk(os.path.join(path)):
+                for f in files:
+                    name, ext = os.path.splitext(f)
+                    if ext.lower() == '.py':
+                        logging.info(
+                            'Loading surface from {0} in {1}...'.format(f, root))
+                        library = ThermoSurface()
+                        library.load(os.path.join(root, f),
+                                     self.local_context, self.global_context)
+                        library.label = os.path.splitext(f)[0]
+                        self.surface[library.label] = library
+                        assign_data_from_labels(library)
+
+        else:
+            for surfaceName in surface:
+                f = surfaceName + '.py'
+                if os.path.exists(os.path.join(path, f)):
+                    logging.info(
+                        'Loading thermodynamics library from {0} in {1}...'.format(f, path))
+                    library = ThermoSurface()
+                    library.load(os.path.join(path, f),
+                                 self.local_context, self.global_context)
+                    library.label = os.path.splitext(f)[0]
+                    self.surface[library.label] = library
+                    assign_data_from_labels(library)
 
     def load_libraries(self, path, libraries=None):
         """
@@ -988,6 +1126,16 @@ class ThermoDatabase(object):
         if not os.path.exists(path):
             os.mkdir(path)
         for library in self.libraries.values():
+            library.save(os.path.join(path, '{0}.py'.format(library.label)))
+
+    def save_surface(self, path):
+        """
+        Save the thermo libraries to the given `path` on disk, where `path`
+        points to the top-level folder of the thermo libraries.
+        """
+        if not os.path.exists(path):
+            os.mkdir(path)
+        for library in self.surface.values():
             library.save(os.path.join(path, '{0}.py'.format(library.label)))
 
     def save_groups(self, path):
@@ -1214,15 +1362,17 @@ class ThermoDatabase(object):
         if thermo0 is not None:
             if len(thermo0) != 3:
                 raise RuntimeError("thermo0 should be a tuple (thermo_data, library, entry), not {0}".format(thermo0))
-            thermo0 = thermo0[0]
-
             if species.contains_surface_site():
-                thermo0 = self.correct_binding_energy(thermo0, species)
-            return thermo0
+                reference = self.get_binding_energies(thermo0[-1].item)
+                delta = self.get_delta_atomic_adsorption_energies(species, reference)
+                return self.correct_binding_energy(thermo0[0], species, delta)
+            return thermo0[0]
 
         if species.contains_surface_site():
             thermo0 = self.get_thermo_data_for_surface_species(species)
-            thermo0 = self.correct_binding_energy(thermo0, species)
+            reference = self.surface['binding_energies'].entries['Pt111'].data
+            delta = self.get_delta_atomic_adsorption_energies(species, reference)
+            thermo0 = self.correct_binding_energy(thermo0, species, delta)
             return thermo0
 
         try:
@@ -1354,18 +1504,22 @@ class ThermoDatabase(object):
         return thermo0
 
     def get_binding_energies(self, species):
+        """
+        Get atomic binding energies for a species based on 
+        `metal`, `facet`, and `site` properties        
+        """
         
         if isinstance(species, Species):
             molecule = species.molecule[0]
-        elif isinstance(species, Molecule):
+        elif isinstance(species, (Molecule,Group)):
             molecule = species
         
         if not molecule.contains_surface_site():
             raise DatabaseError("Can't get binding energy if the species does not contain a surface site.")
         
-        metal = molecule.props.get('metal',None)
-        facet = molecule.props.get('facet',None)
-        site = molecule.props.get('site',None)
+        metal = molecule.props.get('metal', None)
+        facet = molecule.props.get('facet', None)
+        site = molecule.props.get('site', None)
 
         if metal is None:
             for atom in molecule.atoms:
@@ -1373,20 +1527,21 @@ class ThermoDatabase(object):
                     metal = atom.symbol
                     break
         
-        # Pt by default
-        binding_energies = binding_energies_dict['Pt']
-        
-        if 'Pt' in symbols: 
-            return binding_energies
-        else:
-            for symbol in symbols:
-                if symbol in binding_energies_dict:
-                    binding_energies = binding_energies_dict[symbol]
-                    break
+        label = metal
+        if facet: label += facet
+        if site: label += "_{}".format(site)
+   
+        binding_energies = self.surface['binding_energies'].entries.get(label, None)
+        if binding_energies is None and facet is not None:
+            binding_energies = self.surface['binding_energies'].entries.get(
+                metal, None)
 
-        return binding_energies
+        if binding_energies is None:
+            binding_energies = self.surface['binding_energies'].entries['Pt111'] # Pt by default
 
-    def get_delta_atomic_adsorption_energies(self, species, reset_delta_atomic_adsorption_energy = False):
+        return binding_energies.data
+
+    def get_delta_atomic_adsorption_energies(self, species, reference_binding_energies):
         """
         Sets and stores the change in atomic binding energy between
         the desired and the Pt(111) default.
@@ -1405,21 +1560,7 @@ class ThermoDatabase(object):
             None, stores result in self.delta_atomic_adsorption_energy
         """
 
-        if reset_delta_atomic_adsorption_energy:
-            self.delta_atomic_adsorption_energy = None
-
-        if self.delta_atomic_adsorption_energy is None:
-            binding_energies = self.get_binding_energies(species)
-        else:
-            return self.delta_atomic_adsorption_energy
-        # Pt(111) binding energies
-        # Calculated by Katrin Blondal, December 2019
-        reference_binding_energies = {
-            'C': rmgpy.quantity.Energy(-7.02515507, 'eV/molecule'),
-            'H': rmgpy.quantity.Energy(-2.75367887, 'eV/molecule'),
-            'O': rmgpy.quantity.Energy(-3.81153179, 'eV/molecule'),
-            'N': rmgpy.quantity.Energy(-4.63224568, 'eV/molecule'),
-        }
+        binding_energies = self.get_binding_energies(species)
 
         delta_atomic_adsorption_energy = {
             'C': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
@@ -1429,52 +1570,71 @@ class ThermoDatabase(object):
         }
 
         for element, deltaEnergy in delta_atomic_adsorption_energy.items():
-            deltaEnergy.value_si = binding_energies[element].value_si - reference_binding_energies[element].value_si
+            deltaEnergy.value_si = binding_energies.binding_energies[element].value_si - reference_binding_energies.binding_energies[element].value_si
 
         return delta_atomic_adsorption_energy
 
-    def set_delta_atomic_adsorption_energies(self, binding_energies=None):
-        """
-        Sets and stores the change in atomic binding energy between
-        the desired and the Pt(111) default.
+    # def set_atomic_adsorption_energies(self, binding_energies=None):
 
-        This depends on the two metal surfaces: the reference one used in
-        the database of adsorption energies, and the desired surface.
+    #     if binding_energies is None:
+    #         self.binding_energies = 
 
-        If binding_energies are not provided, resets the values to those
-        of the Pt(111) default.
+    # def set_delta_atomic_adsorption_energies(self, binding_energies= None, reference = 'Pt111'):
+    #     """
+    #     Sets and stores the change in atomic binding energy between
+    #     the desired and the Pt(111) default.
 
-        Args:
-            binding_energies (dict, optional): the desired binding energies with
-                elements as keys and binding energy/unit tuples as values
+    #     This depends on the two metal surfaces: the reference one used in
+    #     the database of adsorption energies, and the desired surface.
 
-        Returns:
-            None, stores result in self.delta_atomic_adsorption_energy
-        """
-        # Pt(111) binding energies
-        # Calculated by Katrin Blondal, December 2019
-        reference_binding_energies = {
-            'C': rmgpy.quantity.Energy(-7.02515507, 'eV/molecule'),
-            'H': rmgpy.quantity.Energy(-2.75367887, 'eV/molecule'),
-            'O': rmgpy.quantity.Energy(-3.81153179, 'eV/molecule'),
-            'N': rmgpy.quantity.Energy(-4.63224568, 'eV/molecule'),
-        }
+    #     If binding_energies are not provided, resets the values to those
+    #     of the Pt(111) default.
 
-        if binding_energies is None:
-            self.delta_atomic_adsorption_energy = None
-        else:
-            self.delta_atomic_adsorption_energy = {
-                'C': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
-                'H': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
-                'O': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
-                'N': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
-            }
+    #     Args:
+    #         binding_energies (dict, optional): the desired binding energies with
+    #             elements as keys and binding energy/unit tuples as values
 
-            for element, deltaEnergy in self.delta_atomic_adsorption_energy.items():
-                deltaEnergy.value_si = binding_energies[element].value_si - \
-                    reference_binding_energies[element].value_si
+    #     Returns:
+    #         None, stores result in self.delta_atomic_adsorption_energy
+    #     """
+    #    # Pt(111) binding energies
+    #    # Calculated by Katrin Blondal, December 2019
+    #     default_binding_energies = {
+    #        'C': rmgpy.quantity.Energy(-7.02515507, 'eV/molecule'),
+    #        'H': rmgpy.quantity.Energy(-2.75367887, 'eV/molecule'),
+    #        'O': rmgpy.quantity.Energy(-3.81153179, 'eV/molecule'),
+    #        'N': rmgpy.quantity.Energy(-4.63224568, 'eV/molecule'),
+    #         }
+    #     default_binding_energies = BindingEnergies(label='Pt111',
+    #         binding_energies=default_binding_energies,
+    #         metal='Pt',facet='111')
 
-    def correct_binding_energy(self, thermo, species):
+    #     if reference == 'Pt111':
+    #         self.reference_binding_energies = default_binding_energies
+    #     else:
+    #         reference_binding_energies = self.surface['binding_energies'].entries.get(reference,default_binding_energies)
+    #         self.reference_binding_energies = reference_binding_energies
+        
+    #     self.delta_atomic_adsorption_energy = {
+    #             'C': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
+    #             'H': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
+    #             'O': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
+    #             'N': rmgpy.quantity.Energy(0.0, 'eV/molecule'),
+    #         }
+
+    #     if binding_energies is None:
+    #         binding_energies = default_binding_energies.binding_energies
+    #     elif isinstance(binding_energies,str):
+    #         binding_energies = self.surface['binding_energies'].entries.get(
+    #             binding_energies, default_binding_energies).binding_energies
+    #     elif isinstance(binding_energies,Binding_Energies):
+    #         binding_energies = binding_energies.binding_energies
+
+    #     for element, deltaEnergy in self.delta_atomic_adsorption_energy.items():
+    #         deltaEnergy.value_si = binding_energies[element].value_si - \
+    #             reference_binding_energies[element].value_si
+
+    def correct_binding_energy(self, thermo, species, delta=None):
         """
         Changes the provided thermo, by applying a linear scaling relation
         to correct the adsorption energy.
@@ -1517,11 +1677,11 @@ class ThermoDatabase(object):
         if not isinstance(thermo, ThermoData):
             thermo = thermo.to_thermo_data()
             find_cp0_and_cpinf(species, thermo)
-
-        delta_atomic_adsorption_energy = self.get_delta_atomic_adsorption_energies(species=species)
+        
+  
         # now edit the adsorptionThermo using LSR
         for element in 'CHON':
-            change_in_binding_energy = delta_atomic_adsorption_energy[element].value_si * normalized_bonds[element]
+            change_in_binding_energy = delta[element].value_si * normalized_bonds[element]
             thermo.H298.value_si += change_in_binding_energy
         thermo.comment += " Binding energy corrected by LSR."
         return thermo
@@ -1576,6 +1736,7 @@ class ThermoDatabase(object):
                     raise NotImplementedError("Can't remove surface bond of type {}".format(bond.order))
 
             dummy_molecule.remove_atom(site)
+        dummy_molecule.reset_connectivity_values()
         dummy_molecule.update()
 
         logging.debug("Before removing from surface:\n" + molecule.to_adjacency_list())
@@ -1605,8 +1766,8 @@ class ThermoDatabase(object):
             self._add_group_thermo_data(adsorption_thermo, self.groups['adsorptionPt111'], molecule, {})
         except (KeyError, DatabaseError):
             logging.error("Couldn't find in adsorption thermo database:")
-            logging.error(mol_copy)
-            logging.error(mol_copy.to_adjacency_list())
+            logging.error(species)
+            logging.error(species.to_adjacency_list())
             raise
 
         # (group_additivity=True means it appends the comments)
