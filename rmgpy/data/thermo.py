@@ -956,7 +956,7 @@ class ThermoDatabase(object):
         self.groups = d['groups']
         self.library_order = d['library_order']
 
-    def load(self, path, libraries=None, surface=None, depository=True):
+    def load(self, path, libraries=None, depository=True, surface=None):
         """
         Load the thermo database from the given `path` on disk, where `path`
         points to the top-level folder of the thermo database.

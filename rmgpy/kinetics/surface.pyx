@@ -428,6 +428,30 @@ cdef class SurfaceArrhenius(Arrhenius):
         return (SurfaceArrhenius, (self.A, self.n, self.Ea, self.T0, self.Tmin, self.Tmax, self.Pmin, self.Pmax,
                                    self.uncertainty, self.comment))
 
+    cpdef SurfaceArrheniusBEP to_surface_arrhenius_bep(self, double alpha=0.0, double dHrxn=0.0):
+        """
+        Converts an Arrhenius object to ArrheniusEP
+
+        If setting alpha, you need to also input dHrxn, which must be given
+        in J/mol (and vise versa).
+        """
+
+        if bool(alpha) ^ bool(dHrxn):
+            raise Exception('If you set alpha or dHrxn in to_arrhenius_ep, '
+                            'you need to set the other value to non-zero.')
+        self.change_t0(1)
+        aep = SurfaceArrheniusBEP(
+                          A=self.A,
+                          n=self.n,
+                          alpha=alpha,
+                          E0=(self.Ea.value_si - alpha * dHrxn, 'J/mol'),
+                          Tmin=self.Tmin,
+                          Tmax=self.Tmax,
+                          Pmin=self.Pmin,
+                          Pmax=self.Pmax,
+                          uncertainty=self.uncertainty,
+                          comment=self.comment)
+        return aep
 
 ################################################################################
 

@@ -1101,6 +1101,32 @@ class KineticsFamily(Database):
             raise ValueError('No entry for template {0}.'.format(template))
         return entry
 
+    def _get_dHrxn_alpha(self,item,thermo_database):
+
+        dHrxn = 0.0
+        for reactant in item.reactants:
+            # Clear atom labels to avoid effects on thermo generation, ok because this is a deepcopy
+            reactant.molecule[0].clear_labeled_atoms()
+            reactant.generate_resonance_structures()
+            reactant.thermo = thermo_database.get_thermo_data(
+                reactant, training_set=True)
+            dHrxn -= reactant.thermo.get_enthalpy(298)
+        for product in item.products:
+            product.molecule[0].clear_labeled_atoms()
+            product.generate_resonance_structures()
+            product.thermo = thermo_database.get_thermo_data(
+                product, training_set=True)
+            dHrxn += reactant.thermo.get_enthalpy(298)
+
+        if dHrxn < -abs(-1E7):  # 1000 kJ/mol
+            alpha = 0.0
+        elif dHrxn < -abs(-1E6):  # 100 KJ/mol
+            alpha = 0.25
+        else:
+            alpha = 0.5
+
+        return dHrxn, alpha
+
     def add_rules_from_training(self, thermo_database=None, train_indices=None):
         """
         For each reaction involving real reactants and products in the training
@@ -1143,9 +1169,16 @@ class KineticsFamily(Database):
             data = deepcopy(entry.data)
             data.change_t0(1)
 
+            # get the thermo to convert Arrhenius to Arrhenius BEP
+            item = Reaction(reactants=[Species(molecule=[m.molecule[0].copy(deep=True)], label=m.label)
+                            for m in entry.item.reactants],
+                             products=[Species(molecule=[m.molecule[0].copy(deep=True)], label=m.label)
+                            for m in entry.item.products])
+            dHrxn, alpha = self._get_dHrxn_alpha(item,thermo_database)
+  
             if type(data) is Arrhenius:
                 # more specific than isinstance(data,Arrhenius) because we want to exclude inherited subclasses!
-                data = data.to_arrhenius_ep()
+                data = data.to_arrhenius_ep(alpha=alpha, dHrxn=dHrxn)
             elif isinstance(data, StickingCoefficient):
                 data = StickingCoefficientBEP(
                     # todo: perhaps make a method StickingCoefficient.StickingCoefficientBEP
@@ -1158,16 +1191,17 @@ class KineticsFamily(Database):
                     Tmax=deepcopy(data.Tmax)
                 )
             elif isinstance(data, SurfaceArrhenius):
-                data = SurfaceArrheniusBEP(
-                    # todo: perhaps make a method SurfaceArrhenius.toSurfaceArrheniusBEP
-                    #  analogous to Arrhenius.to_arrhenius_ep
-                    A=deepcopy(data.A),
-                    n=deepcopy(data.n),
-                    alpha=0,
-                    E0=deepcopy(data.Ea),
-                    Tmin=deepcopy(data.Tmin),
-                    Tmax=deepcopy(data.Tmax)
-                )
+                data = data.to_surface_arrhenius_bep(alpha=alpha, dHrxn=dHrxn)
+                # data = SurfaceArrheniusBEP(
+                #     # todo: perhaps make a method SurfaceArrhenius.toSurfaceArrheniusBEP
+                #     #  analogous to Arrhenius.to_arrhenius_ep
+                #     A=deepcopy(data.A),
+                #     n=deepcopy(data.n),
+                #     alpha=0,
+                #     E0=deepcopy(data.Ea),
+                #     Tmin=deepcopy(data.Tmin),
+                #     Tmax=deepcopy(data.Tmax)
+                # )
             else:
                 raise NotImplementedError("Unexpected training kinetics type {} for {}".format(type(data), entry))
 
@@ -1214,16 +1248,26 @@ class KineticsFamily(Database):
                 quantum_mechanics = get_input('quantum_mechanics')
                 if quantum_mechanics:
                     quantum_mechanics.run_jobs(item.reactants + item.products, procnum=procnum)
-
+            
+            dHrxn = 0.0
             for reactant in item.reactants:
                 # Clear atom labels to avoid effects on thermo generation, ok because this is a deepcopy
                 reactant.molecule[0].clear_labeled_atoms()
                 reactant.generate_resonance_structures()
                 reactant.thermo = thermo_database.get_thermo_data(reactant, training_set=True)
+                dHrxn -= reactant.thermo.get_enthalpy(298)
             for product in item.products:
                 product.molecule[0].clear_labeled_atoms()
                 product.generate_resonance_structures()
                 product.thermo = thermo_database.get_thermo_data(product, training_set=True)
+                dHrxn += reactant.thermo.get_enthalpy(298)
+        
+            if dHrxn < -abs(-1E7):  # 1000 kJ/mol
+                alpha = 0.0
+            elif dHrxn < -abs(-1E6):  # 100 KJ/mol
+                alpha = 0.25
+            else:
+                alpha = 0.5
             # Now that we have the thermo, we can get the reverse k(T)
             item.kinetics = data
             data = item.generate_reverse_rate_coefficient()
@@ -1236,17 +1280,18 @@ class KineticsFamily(Database):
             new_degeneracy = self.calculate_degeneracy(item)
 
             if isinstance(entry.data, SurfaceArrhenius):
-                data = SurfaceArrheniusBEP(
-                    #  analogous to Arrhenius.to_arrhenius_ep
-                    A=deepcopy(data.A),
-                    n=deepcopy(data.n),
-                    alpha=0,
-                    E0=deepcopy(data.Ea),
-                    Tmin=deepcopy(data.Tmin),
-                    Tmax=deepcopy(data.Tmax)
-                )
+                data = data.to_surface_arrhenius_bep(alpha=alpha, dHrxn=dHrxn)
+                # data = SurfaceArrheniusBEP(
+                #     #  analogous to Arrhenius.to_arrhenius_ep
+                #     A=deepcopy(data.A),
+                #     n=deepcopy(data.n),
+                #     alpha=0,
+                #     E0=deepcopy(data.Ea),
+                #     Tmin=deepcopy(data.Tmin),
+                #     Tmax=deepcopy(data.Tmax)
+                # )
             else:
-                data = data.to_arrhenius_ep()
+                data = data.to_arrhenius_ep(alpha=alpha,dHrxn=dHrxn)
 
             new_entry = Entry(
                 index=index,
