@@ -1120,12 +1120,16 @@ class KineticsFamily(Database):
         
         if dHrxn == 0.0:
             alpha = 0.0
-        if dHrxn < -abs(-1E7):  # 1000 kJ/mol
-            alpha = 0.01
-        elif dHrxn < -abs(-1E6):  # 100 KJ/mol
+        elif dHrxn > 1E6:  # 1000 kJ/mol
+            alpha = 1.0
+        elif dHrxn > 1E5:  # 100 kJ/mol
+            alpha = 0.75
+        elif dHrxn > -1E4: # -10 kJ/mol
+            alpha = 0.50
+        elif dHrxn > -1E5: # -100 kJ/mol
             alpha = 0.25
         else:
-            alpha = 0.5
+            alpha = 0.01
 
         return dHrxn, alpha
 
@@ -1263,21 +1267,25 @@ class KineticsFamily(Database):
                 reactant.molecule[0].clear_labeled_atoms()
                 reactant.generate_resonance_structures()
                 reactant.thermo = thermo_database.get_thermo_data(reactant, training_set=True)
-                dHrxn -= reactant.thermo.get_enthalpy(298)
+                dHrxn += reactant.thermo.get_enthalpy(298) # thermo in reverse
             for product in item.products:
                 product.molecule[0].clear_labeled_atoms()
                 product.generate_resonance_structures()
                 product.thermo = thermo_database.get_thermo_data(product, training_set=True)
-                dHrxn += reactant.thermo.get_enthalpy(298)
+                dHrxn -= reactant.thermo.get_enthalpy(298)  # thermo in reverse
         
             if dHrxn == 0.0:
                 alpha = 0.0
-            elif dHrxn < -abs(-1E7):  # 1000 kJ/mol
-                alpha = 0.01
-            elif dHrxn < -abs(-1E6):  # 100 KJ/mol
+            elif dHrxn > 1E6:  # 1000 kJ/mol
+                alpha = 1.0
+            elif dHrxn > 1E5:  # 100 kJ/mol
+                alpha = 0.75
+            elif dHrxn > -1E4: # -10 kJ/mol
+                alpha = 0.50
+            elif dHrxn > -1E5: # -100 kJ/mol
                 alpha = 0.25
             else:
-                alpha = 0.5
+                alpha = 0.01
             # Now that we have the thermo, we can get the reverse k(T)
             item.kinetics = data
             data = item.generate_reverse_rate_coefficient()
