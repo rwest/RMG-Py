@@ -1946,7 +1946,7 @@ class ThermoDatabase(object):
         match = None
         for entry in library.entries.values():
             for molecule in species.molecule:
-                if molecule.is_isomorphic(entry.item) and entry.data is not None:
+                if molecule.is_isomorphic(entry.item, check_metals=False) and entry.data is not None:
                     thermo_data = deepcopy(entry.data)
                     thermo_data.label = entry.label
                     find_cp0_and_cpinf(species, thermo_data)

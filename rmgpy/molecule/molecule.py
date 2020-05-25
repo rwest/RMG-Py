@@ -1280,6 +1280,7 @@ class Molecule(Graph):
             v2.sorting_label = v1.sorting_label
         other.multiplicity = self.multiplicity
         other.reactive = self.reactive
+        other.props = self.props
         return other
 
     def merge(self, other):
@@ -1465,7 +1466,7 @@ class Molecule(Graph):
 
         return element_count
 
-    def is_isomorphic(self, other, initial_map=None, generate_initial_map=False, save_order=False, strict=True):
+    def is_isomorphic(self, other, initial_map=None, generate_initial_map=False, save_order=False, strict=True, check_metals=True):
         """
         Returns :data:`True` if two graphs are isomorphic and :data:`False`
         otherwise. The `initialMap` attribute can be used to specify a required
@@ -1493,6 +1494,16 @@ class Molecule(Graph):
         # check multiplicity
         if self.multiplicity != other.multiplicity:
             return False
+
+        if check_metals and self.contains_surface_site():
+            if not other.contains_surface_site():
+                return False
+            if self.props.get('metal') != other.props.get('metal'):
+                return False
+            if self.props.get('facet') != other.props.get('facet'):
+                return False
+            if self.props.get('site') != other.props.get('site'):
+                return False
 
         if generate_initial_map:
             initial_map = dict()
@@ -2525,7 +2536,7 @@ class Molecule(Graph):
             return True
         return False
 
-    def is_identical(self, other, strict=True):
+    def is_identical(self, other, strict=True, check_metals=True):
         """
         Performs isomorphism checking, with the added constraint that atom IDs must match.
 
@@ -2540,6 +2551,17 @@ class Molecule(Graph):
         if not isinstance(other, Molecule):
             raise TypeError(
                 'Got a {0} object for parameter "other", when a Molecule object is required.'.format(other.__class__))
+
+
+        if check_metals and self.contains_surface_site():
+            if not other.contains_surface_site():
+                return False
+            if self.props.get('metal') != other.props.get('metal'):
+                return False
+            if self.props.get('facet') != other.props.get('facet'):
+                return False
+            if self.props.get('site') != other.props.get('site'):
+                return False
 
         # Get a set of atom indices for each molecule
         atom_ids = set([atom.id for atom in self.atoms])

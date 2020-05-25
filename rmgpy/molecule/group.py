@@ -1732,7 +1732,7 @@ class Group(Graph):
             if len(atom.radical_electrons) >= 1:
                 self.radicalCount += atom.radical_electrons[0]
 
-    def is_isomorphic(self, other, initial_map=None, save_order=False, strict=True):
+    def is_isomorphic(self, other, initial_map=None, save_order=False, strict=True, check_metals=True):
         """
         Returns ``True`` if two graphs are isomorphic and ``False``
         otherwise. The `initial_map` attribute can be used to specify a required
@@ -1748,6 +1748,16 @@ class Group(Graph):
             raise TypeError(
                 'Got a {0} object for parameter "other", when a Group object is required.'.format(other.__class__))
         # Do the isomorphism comparison
+        if check_metals and self.contains_surface_site():
+            if not other.contains_surface_site():
+                return False
+            if self.props.get('metal') != other.props.get('metal'):
+                return False
+            if self.props.get('facet') != other.props.get('facet'):
+                return False
+            if self.props.get('site') != other.props.get('site'):
+                return False
+        
         return Graph.is_isomorphic(self, other, initial_map, save_order=save_order)
 
     def find_isomorphism(self, other, initial_map=None, save_order=False, strict=True):
@@ -1770,7 +1780,7 @@ class Group(Graph):
         # Do the isomorphism comparison
         return Graph.find_isomorphism(self, other, initial_map, save_order=save_order)
 
-    def is_subgraph_isomorphic(self, other, initial_map=None, generate_initial_map=False, save_order=False):
+    def is_subgraph_isomorphic(self, other, initial_map=None, generate_initial_map=False, save_order=False, check_metals=True):
         """
         Returns ``True`` if `other` is subgraph isomorphic and ``False``
         otherwise. In other words, return ``True`` if self is more specific than other.
@@ -1829,6 +1839,17 @@ class Group(Graph):
                         return False
         else:
             if group.multiplicity: return False
+
+        if check_metals and self.contains_surface_site():
+            if not other.contains_surface_site():
+                return False
+            if self.props.get('metal') != other.props.get('metal'):
+                return False
+            if self.props.get('facet') != other.props.get('facet'):
+                return False
+            if self.props.get('site') != other.props.get('site'):
+                return False
+
         # Do the isomorphism comparison
         return Graph.is_subgraph_isomorphic(self, other, initial_map, save_order=save_order)
 

@@ -928,7 +928,7 @@ class Database(object):
         elif isinstance(parent_node.item, LogicOr):
             return child_node.label in parent_node.item.components
 
-    def match_node_to_structure(self, node, structure, atoms, strict=False):
+    def match_node_to_structure(self, node, structure, atoms, strict=False, check_metals=False):
         """
         Return :data:`True` if the `structure` centered at `atom` matches the
         structure at `node` in the dictionary. The structure at `node` should
@@ -1003,7 +1003,7 @@ class Database(object):
                 atom.ignore = True
 
             # use mapped (labeled) atoms to try to match subgraph
-            result = structure.is_subgraph_isomorphic(group, initial_map)
+            result = structure.is_subgraph_isomorphic(group, initial_map, check_metals=check_metals)
 
             # Restore atoms flagged in previous step
             for atom in flagged_atoms:
@@ -1011,7 +1011,7 @@ class Database(object):
 
             return result
 
-    def descend_tree(self, structure, atoms, root=None, strict=False):
+    def descend_tree(self, structure, atoms, root=None, strict=False, check_metals=False):
         """
         Descend the tree in search of the functional group node that best
         matches the local structure around `atoms` in `structure`.
@@ -1027,16 +1027,16 @@ class Database(object):
 
         if root is None:
             for root in self.top:
-                if self.match_node_to_structure(root, structure, atoms, strict):
+                if self.match_node_to_structure(root, structure, atoms, strict, check_metals):
                     break  # We've found a matching root
             else:  # didn't break - matched no top nodes
                 return None
-        elif not self.match_node_to_structure(root, structure, atoms, strict):
+        elif not self.match_node_to_structure(root, structure, atoms, strict, check_metals):
             return None
 
         next_node = []
         for child in root.children:
-            if self.match_node_to_structure(child, structure, atoms, strict):
+            if self.match_node_to_structure(child, structure, atoms, strict, check_metals):
                 next_node.append(child)
 
         if len(next_node) == 1:
@@ -1132,7 +1132,7 @@ class LogicOr(LogicNode):
 
     symbol = "OR"
 
-    def match_to_structure(self, database, structure, atoms, strict=False):
+    def match_to_structure(self, database, structure, atoms, strict=False, check_metals=False):
         """
         Does this node in the given database match the given structure with the labeled atoms?
         
@@ -1143,7 +1143,7 @@ class LogicOr(LogicNode):
             if isinstance(node, LogicNode):
                 match = node.match_to_structure(database, structure, atoms, strict)
             else:
-                match = database.match_node_to_structure(node, structure, atoms, strict)
+                match = database.match_node_to_structure(node, structure, atoms, strict, check_metals)
             if match:
                 return True != self.invert
         return False != self.invert
@@ -1183,7 +1183,7 @@ class LogicAnd(LogicNode):
 
     symbol = "AND"
 
-    def match_to_structure(self, database, structure, atoms, strict=False):
+    def match_to_structure(self, database, structure, atoms, strict=False, check_metals=False):
         """
         Does this node in the given database match the given structure with the labeled atoms?
         
@@ -1192,9 +1192,9 @@ class LogicAnd(LogicNode):
         """
         for node in self.components:
             if isinstance(node, LogicNode):
-                match = node.match_to_structure(database, structure, atoms, strict)
+                match = node.match_to_structure(database, structure, atoms, strict, check_metals)
             else:
-                match = database.match_node_to_structure(node, structure, atoms, strict)
+                match = database.match_node_to_structure(node, structure, atoms, strict, check_metals)
             if not match:
                 return False != self.invert
         return True != self.invert
@@ -1322,7 +1322,7 @@ class ForbiddenStructures(Database):
         for entry in self.entries.values():
             if isinstance(entry.item, Molecule) or isinstance(entry.item, Species):
                 # Perform an isomorphism check
-                if entry.item.is_isomorphic(molecule):
+                if entry.item.is_isomorphic(molecule, check_metals=False):
                     return True
             elif isinstance(entry.item, Group):
                 # We need to do subgraph isomorphism
@@ -1332,7 +1332,7 @@ class ForbiddenStructures(Database):
                     # all group labels must be present in the molecule
                     if label not in molecule_labeled_atoms: break
                 else:
-                    if molecule.is_subgraph_isomorphic(entry.item, generate_initial_map=True):
+                    if molecule.is_subgraph_isomorphic(entry.item, generate_initial_map=True, check_metals=False):
                         return True
             else:
                 raise NotImplementedError('Checking is only implemented for forbidden Groups, Molecule, and Species.')

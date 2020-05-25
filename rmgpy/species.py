@@ -278,7 +278,7 @@ class Species(object):
             self.molecule = self.molecule[0].generate_resonance_structures(keep_isomorphic=keep_isomorphic,
                                                                            filter_structures=filter_structures)
 
-    def is_isomorphic(self, other, generate_initial_map=False, save_order=False, strict=True):
+    def is_isomorphic(self, other, generate_initial_map=False, save_order=False, strict=True, check_metals=True):
         """
         Return ``True`` if the species is isomorphic to `other`, which can be
         either a :class:`Molecule` object or a :class:`Species` object.
@@ -291,20 +291,20 @@ class Species(object):
         if isinstance(other, Molecule):
             for molecule in self.molecule:
                 if molecule.is_isomorphic(other, generate_initial_map=generate_initial_map,
-                                          save_order=save_order, strict=strict):
+                                          save_order=save_order, strict=strict, check_metals=check_metals):
                     return True
         elif isinstance(other, Species):
             for molecule1 in self.molecule:
                 for molecule2 in other.molecule:
                     if molecule1.is_isomorphic(molecule2, generate_initial_map=generate_initial_map,
-                                               save_order=save_order, strict=strict):
+                                               save_order=save_order, strict=strict, check_metals=check_metals):
                         return True
         else:
             raise ValueError('Unexpected value "{0!r}" for other parameter;'
                              ' should be a Molecule or Species object.'.format(other))
         return False
 
-    def is_identical(self, other, strict=True):
+    def is_identical(self, other, strict=True, check_metals=True):
         """
         Return ``True`` if at least one molecule of the species is identical to `other`,
         which can be either a :class:`Molecule` object or a :class:`Species` object.
@@ -313,12 +313,12 @@ class Species(object):
         """
         if isinstance(other, Molecule):
             for molecule in self.molecule:
-                if molecule.is_identical(other, strict=strict):
+                if molecule.is_identical(other, strict=strict, check_metals=check_metals):
                     return True
         elif isinstance(other, Species):
             for molecule1 in self.molecule:
                 for molecule2 in other.molecule:
-                    if molecule1.is_identical(molecule2, strict=strict):
+                    if molecule1.is_identical(molecule2, strict=strict, check_metals=check_metals):
                         return True
         else:
             raise ValueError('Unexpected value "{0!r}" for other parameter;'

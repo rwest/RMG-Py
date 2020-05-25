@@ -190,7 +190,7 @@ cdef class Molecule(Graph):
 
     cpdef dict get_element_count(self)
 
-    cpdef bint is_isomorphic(self, Graph other, dict initial_map=?, bint generate_initial_map=?, bint save_order=?, bint strict=?) except -2
+    cpdef bint is_isomorphic(self, Graph other, dict initial_map=?, bint generate_initial_map=?, bint save_order=?, bint strict=?, bint check_metals=?) except -2
 
     cpdef list find_isomorphism(self, Graph other, dict initial_map=?, bint save_order=?, bint strict=?)
 
@@ -261,7 +261,7 @@ cdef class Molecule(Graph):
 
     cpdef bint atom_ids_valid(self)
 
-    cpdef bint is_identical(self, Molecule other, bint strict=?) except -2
+    cpdef bint is_identical(self, Molecule other, bint strict=?, bint check_metals=?) except -2
 
     cpdef dict enumerate_bonds(self)
 
