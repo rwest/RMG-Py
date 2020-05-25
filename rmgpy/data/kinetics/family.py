@@ -1117,9 +1117,11 @@ class KineticsFamily(Database):
             product.thermo = thermo_database.get_thermo_data(
                 product, training_set=True)
             dHrxn += reactant.thermo.get_enthalpy(298)
-
-        if dHrxn < -abs(-1E7):  # 1000 kJ/mol
+        
+        if dHrxn == 0.0:
             alpha = 0.0
+        if dHrxn < -abs(-1E7):  # 1000 kJ/mol
+            alpha = 0.01
         elif dHrxn < -abs(-1E6):  # 100 KJ/mol
             alpha = 0.25
         else:
@@ -1178,7 +1180,10 @@ class KineticsFamily(Database):
   
             if type(data) is Arrhenius:
                 # more specific than isinstance(data,Arrhenius) because we want to exclude inherited subclasses!
-                data = data.to_arrhenius_ep(alpha=alpha, dHrxn=dHrxn)
+                try:
+                    data = data.to_arrhenius_ep(alpha=alpha, dHrxn=dHrxn)
+                except:
+                    data = data.to_arrhenius_ep()
             elif isinstance(data, StickingCoefficient):
                 data = StickingCoefficientBEP(
                     # todo: perhaps make a method StickingCoefficient.StickingCoefficientBEP
@@ -1191,7 +1196,10 @@ class KineticsFamily(Database):
                     Tmax=deepcopy(data.Tmax)
                 )
             elif isinstance(data, SurfaceArrhenius):
-                data = data.to_surface_arrhenius_bep(alpha=alpha, dHrxn=dHrxn)
+                try:
+                    data = data.to_surface_arrhenius_bep(alpha=alpha, dHrxn=dHrxn)
+                except:
+                    data = data.to_surface_arrhenius_bep()
                 # data = SurfaceArrheniusBEP(
                 #     # todo: perhaps make a method SurfaceArrhenius.toSurfaceArrheniusBEP
                 #     #  analogous to Arrhenius.to_arrhenius_ep
@@ -1262,8 +1270,10 @@ class KineticsFamily(Database):
                 product.thermo = thermo_database.get_thermo_data(product, training_set=True)
                 dHrxn += reactant.thermo.get_enthalpy(298)
         
-            if dHrxn < -abs(-1E7):  # 1000 kJ/mol
+            if dHrxn == 0.0:
                 alpha = 0.0
+            elif dHrxn < -abs(-1E7):  # 1000 kJ/mol
+                alpha = 0.01
             elif dHrxn < -abs(-1E6):  # 100 KJ/mol
                 alpha = 0.25
             else:
@@ -1280,7 +1290,10 @@ class KineticsFamily(Database):
             new_degeneracy = self.calculate_degeneracy(item)
 
             if isinstance(entry.data, SurfaceArrhenius):
-                data = data.to_surface_arrhenius_bep(alpha=alpha, dHrxn=dHrxn)
+                try:
+                    data = data.to_surface_arrhenius_bep(alpha=alpha, dHrxn=dHrxn)
+                except:
+                    data = data.to_surface_arrhenius_bep()
                 # data = SurfaceArrheniusBEP(
                 #     #  analogous to Arrhenius.to_arrhenius_ep
                 #     A=deepcopy(data.A),
@@ -1291,7 +1304,10 @@ class KineticsFamily(Database):
                 #     Tmax=deepcopy(data.Tmax)
                 # )
             else:
-                data = data.to_arrhenius_ep(alpha=alpha,dHrxn=dHrxn)
+                try:
+                    data = data.to_arrhenius_ep(alpha=alpha, dHrxn=dHrxn)
+                except:
+                    data = data.to_arrhenius_ep()
 
             new_entry = Entry(
                 index=index,
