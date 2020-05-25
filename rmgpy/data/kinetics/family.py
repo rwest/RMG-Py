@@ -1116,18 +1116,14 @@ class KineticsFamily(Database):
             product.generate_resonance_structures()
             product.thermo = thermo_database.get_thermo_data(
                 product, training_set=True)
-            dHrxn += reactant.thermo.get_enthalpy(298)
+            dHrxn += product.thermo.get_enthalpy(298)
         
-        if dHrxn == 0.0:
-            alpha = 0.0
-        elif dHrxn > 1E6:  # 1000 kJ/mol
-            alpha = 1.0
-        elif dHrxn > 1E5:  # 100 kJ/mol
-            alpha = 0.75
-        elif dHrxn > -1E4: # -10 kJ/mol
+        if dHrxn > 1E6:  # 1000 kJ/mol
             alpha = 0.50
-        elif dHrxn > -1E5: # -100 kJ/mol
+        elif dHrxn > -1E4: # -10 kJ/mol
             alpha = 0.25
+        elif dHrxn > -1E5: # -100 kJ/mol
+            alpha = 0.10
         else:
             alpha = 0.01
 
@@ -1272,18 +1268,14 @@ class KineticsFamily(Database):
                 product.molecule[0].clear_labeled_atoms()
                 product.generate_resonance_structures()
                 product.thermo = thermo_database.get_thermo_data(product, training_set=True)
-                dHrxn -= reactant.thermo.get_enthalpy(298)  # thermo in reverse
+                dHrxn -= product.thermo.get_enthalpy(298)  # thermo in reverse
         
-            if dHrxn == 0.0:
-                alpha = 0.0
-            elif dHrxn > 1E6:  # 1000 kJ/mol
-                alpha = 1.0
-            elif dHrxn > 1E5:  # 100 kJ/mol
-                alpha = 0.75
-            elif dHrxn > -1E4: # -10 kJ/mol
+            if dHrxn > 1E6:  # 1000 kJ/mol
                 alpha = 0.50
-            elif dHrxn > -1E5: # -100 kJ/mol
+            elif dHrxn > -1E4: # -10 kJ/mol
                 alpha = 0.25
+            elif dHrxn > -1E5: # -100 kJ/mol
+                alpha = 0.10
             else:
                 alpha = 0.01
             # Now that we have the thermo, we can get the reverse k(T)
