@@ -69,7 +69,8 @@ class Saturator(object):
                 order) - atom.charge
 
             if number_of_h_to_be_added < 0:
-                raise InvalidAdjacencyListError('Incorrect electron configuration on atom.')
+                raise InvalidAdjacencyListError(f'Incorrect electron configuration on atom {atom!r}.'
+                    f'{atom.radical_electrons} radicals, {atom.lone_pairs} lone pairs, {order} total bond order, {atom.charge} charge')
 
             for _ in range(number_of_h_to_be_added):
                 a = Atom(element='H', radical_electrons=0, charge=0, label='', lone_pairs=0)
