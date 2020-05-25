@@ -67,6 +67,7 @@ class ReactionModel:
     def __init__(self, species=None, reactions=None):
         self.species = species or []
         self.reactions = reactions or []
+        self.metals = []
 
     def __reduce__(self):
         """
@@ -276,7 +277,7 @@ class CoreEdgeReactionModel:
 
         # If desired, check to ensure that the species is new; return the
         # existing species if not new
-        if check_existing:
+        if check_existing and not molecule.contains_surface_site():
             spec = self.check_for_existing_species(molecule)
             if spec is not None:
                 return spec, False
@@ -1524,7 +1525,7 @@ class CoreEdgeReactionModel:
             new_edge_reactions=[],
         )
 
-    def add_reaction_library_to_edge(self, reaction_library):
+    def add_reaction_library_to_edge(self, reaction_library, metals=[], thermo_database=None):
         """
         Add all species and reactions from `reaction_library`, a
         :class:`KineticsPrimaryDatabase` object, to the model edge.
@@ -1547,6 +1548,18 @@ class CoreEdgeReactionModel:
         reaction_library = database.kinetics.libraries[reaction_library]
 
         rxns = reaction_library.get_library_reactions()
+        if len(metals) > 0:
+            new_reactions = []
+            for rxn in rxns:
+                if not rxn.is_surface_reaction():
+                    new_reactions.append(rxn)
+                else:
+                    for metal_info in metals:
+                        for metal,facet,site in metal_info:
+                            new_reaction = rxn.change_metal(metal, facet, site, change_barrier=True, thermo_database=thermo_database, alpha=0.5)
+                            new_reactions.append(new_reaction)
+            rxns = new_reactions
+
         for rxn in rxns:
             if isinstance(rxn, LibraryReaction) and not (rxn.library in library_names):  # if one of the reactions in the library is from another library load that library
                 database.kinetics.library_order.append((rxn.library, 'Internal'))

@@ -158,8 +158,14 @@ def species(label, structure, reactive=True):
     # any reaction libraries along the way
     rmg.reaction_model.add_species_to_edge(spec)
     rmg.initial_species.append(spec)
+    if spec.contains_surface_site():
+        mol = spcs.molecule[0]
+        metal = mol.props.get("metal")
+        facet = mol.props.get("facet")
+        site = mol.props.get("site")
+        if (metal,facet,site) not in rmg.metals:
+            rmg.metals.append((metal,facet,site))
     species_dict[label] = spec
-
 
 def smarts(string):
     return Molecule().from_smarts(string)
