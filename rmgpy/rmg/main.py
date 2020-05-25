@@ -73,6 +73,7 @@ from rmgpy.rmg.settings import ModelSettings
 from rmgpy.solver.base import TerminationTime, TerminationConversion
 from rmgpy.solver.simple import SimpleReactor
 from rmgpy.stats import ExecutionStatsWriter
+from rmgpy.thermo.bindingenergies import BindingEnergies
 from rmgpy.thermo.thermoengine import submit
 from rmgpy.tools.plot import plot_sensitivity
 from rmgpy.tools.uncertainty import Uncertainty, process_local_results
@@ -398,7 +399,12 @@ class RMG(util.Subject):
         self.check_libraries()
 
         if self.binding_energies:
-            self.database.thermo.set_delta_atomic_adsorption_energies(self.binding_energies)
+            db = self.database.thermo.surface['binding_energies']
+            index = max([entry.index for entry in db.entries.values()])
+            for label, binding_energies in self.binding_energies.items():
+                data = BindingEnergies(binding_energies=binding_energies, label=label)  
+                index += 1
+                db.entries[label] = Entry(index=index,label=label,data=data)
 
         # set global variable solvent
         if self.solvent:

@@ -121,24 +121,24 @@ def convert_binding_energies(bindingEnergies):
     :return: the processed and checked dictionary
     """
     if bindingEnergies is None:
-        bindingEnergies = {  # default values for Pt(111)
+        bindingEnergies = {'Pt': {  # default values for Pt(111)
             'C': (-6.750, 'eV/molecule'),
             'H': (-2.479, 'eV/molecule'),
             'O': (-3.586, 'eV/molecule'),
             'N': (-4.352, 'eV/molecule'),
-        }
+        }}
         logging.info("Using default binding energies for Pt(111):\n{0!r}".format(bindingEnergies))
     if not isinstance(bindingEnergies, dict):
         raise InputError("bindingEnergies should be None (for default) or a dict.")
     new_dict = {}
-    for element in 'CHON':
-        try:
-            new_dict[element] = Energy(bindingEnergies[element])
-        except KeyError:
-            logging.error('Element {} missing from bindingEnergies dictionary'.format(element))
-            raise
+    for label, binding_energies_dict in bindingEnergies.items():
+        for element in 'CHON':
+            try:
+                new_dict[label][element] = Energy(bindingEnergies[element])
+            except KeyError:
+                logging.error('Element {} missing from bindingEnergies dictionary'.format(element))
+                raise
     return new_dict
-
 
 def species(label, structure, reactive=True):
     logging.debug('Found {0} species "{1}" ({2})'.format('reactive' if reactive else 'nonreactive',
