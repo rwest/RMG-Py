@@ -749,7 +749,6 @@ class ThermoLibrary(Database):
                     raise DatabaseError('Adjacency list and multiplicity of {0} matches that of '
                                         'existing molecule {1} in thermo library {2}. Please '
                                         'correct your library.'.format(label, entry.label, self.name))
-
         self.entries[label] = Entry(
             index=index,
             label=label,
@@ -1023,13 +1022,30 @@ class ThermoDatabase(object):
                 f = surfaceName + '.py'
                 if os.path.exists(os.path.join(path, f)):
                     logging.info(
-                        'Loading thermodynamics library from {0} in {1}...'.format(f, path))
+                        'Loading Surface from {0} in {1}...'.format(f, path))
                     library = ThermoSurface()
                     library.load(os.path.join(path, f),
                                  self.local_context, self.global_context)
                     library.label = os.path.splitext(f)[0]
                     self.surface[library.label] = library
                     assign_data_from_labels(library)
+    
+    def _assign_metal_attrs_to_entries(self, library):
+
+        metal, facet, site = library.metal, library.facet, library.site
+        if any([prop is not None for prop in (metal,facet,site)]):
+            for entry in library.entries.values():
+                molecule = entry.item
+                if molecule.contains_surface_site():
+                    for atom in molecule.atoms:
+                        if atom.is_surface_site():
+                            if metal and "metal" not in atom.props:
+                                atom.props["metal"] = metal
+                            if facet and "facet" not in atom.props:
+                                atom.props["facet"] = facet
+                            if site and "site" not in atom.props:
+                                atom.props["site"] = site
+                    molecule.set_surface_props()
 
     def load_libraries(self, path, libraries=None):
         """
@@ -1048,6 +1064,7 @@ class ThermoDatabase(object):
                         logging.info('Loading thermodynamics library from {0} in {1}...'.format(f, root))
                         library = ThermoLibrary()
                         library.load(os.path.join(root, f), self.local_context, self.global_context)
+                        self._assign_metal_attrs_to_entries(library)
                         library.label = os.path.splitext(f)[0]
                         self.libraries[library.label] = library
                         self.library_order.append(library.label)
@@ -1059,6 +1076,7 @@ class ThermoDatabase(object):
                     logging.info('Loading thermodynamics library from {0} in {1}...'.format(f, path))
                     library = ThermoLibrary()
                     library.load(os.path.join(path, f), self.local_context, self.global_context)
+                    self._assign_metal_attrs_to_entries(library)
                     library.label = os.path.splitext(f)[0]
                     self.libraries[library.label] = library
                     self.library_order.append(library.label)
@@ -1092,7 +1110,8 @@ class ThermoDatabase(object):
                                                         self.local_context, self.global_context)
             for category in categories
         }
-
+        for groups in self.groups.values():
+            self._assign_metal_attrs_to_entries(groups)
         self.record_ring_generic_nodes()
         self.record_polycylic_generic_nodes()
 
@@ -1533,8 +1552,7 @@ class ThermoDatabase(object):
    
         binding_energies = self.surface['binding_energies'].entries.get(label, None)
         if binding_energies is None and facet is not None:
-            binding_energies = self.surface['binding_energies'].entries.get(
-                metal, None)
+            binding_energies = self.surface['binding_energies'].entries.get(metal, None)
 
         if binding_energies is None:
             binding_energies = self.surface['binding_energies'].entries['Pt111'] # Pt by default
