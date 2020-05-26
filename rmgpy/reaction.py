@@ -231,89 +231,93 @@ class Reaction:
         # set new degeneracy
         self._degeneracy = new
 
-    def change_metal(self, metal, facet=None, site=None, change_barrier=False, alpha=0.5):
+    # def change_metal(self, metal, facet=None, site=None, change_barrier=False, thermo_database=None, alpha=0.5):
         
-        if not self.is_surface_reaction():
-            return self
+    #     if not self.is_surface_reaction():
+    #         return self
 
-        # rxn = Reaction(reactants=[Species(molecule=[m.molecule[0].copy(deep=True)], label=m.label)
-        #                     for m in entry.item.reactants],
-        #                 products=[Species(molecule=[m.molecule[0].copy(deep=True)], label=m.label)
-        #                     for m in entry.item.products])
+    #     # rxn = Reaction(reactants=[Species(molecule=[m.molecule[0].copy(deep=True)], label=m.label)
+    #     #                     for m in entry.item.reactants],
+    #     #                 products=[Species(molecule=[m.molecule[0].copy(deep=True)], label=m.label)
+    #     #                     for m in entry.item.products])
 
-        rxn = self.copy()
+    #     rxn = self.copy()
         
-        if change_barrier:
-            dHrxn_old = 0.0
-            dHrxn_new = 0.0
+    #     if change_barrier:
+    #         dHrxn_old = 0.0
+    #         dHrxn_new = 0.0
         
-        old_metal = None
+    #     old_metal = None
 
-        for reactant in rxn.reactants:
-            if change_barrier:
-                mol = reactant.molecule[0].copy(deep=True)
-                mol.clear_labeled_atoms()
-                spcs = Species(molecule=[mol])
-                dHrxn_old -= spcs.get_enthalpy(298)
-            for atom in reactant.molecule[0].atoms:
-                if atom.is_surface_site():
-                    if "metal" in atom.props: atom.props.pop("metal")
-                    if "site" in atom.props: atom.props.pop("site")
-                    if "facet" in atom.props: atom.props.pop("facet")
-                    if metal: atom.props["metal"] = metal
-                    if facet: atom.props["facet"] = facet
-                    if site: atom.props["site"] = site
-                reactant.molecule[0].update()
-            if change_barrier:
-                mol = reactant.molecule[0].copy(deep=True)
-                mol.clear_labeled_atoms()
-                spcs = Species(molecule=[mol])
-                dHrxn_new -= spcs.get_enthalpy(298)
-        for product in rxn.products:
-            if change_barrier:
-                mol = product.molecule[0].copy(deep=True)
-                mol.clear_labeled_atoms()
-                spcs = Species(molecule=[mol])
-                dHrxn_old += spcs.get_enthalpy(298)
-            for atom in product.molecule[0].atoms:
-                if atom.is_surface_site():
-                    if "metal" in atom.props: old_metal = atom.props.pop("metal")
-                    if "site" in atom.props: atom.props.pop("site")
-                    if "facet" in atom.props: atom.props.pop("facet")
-                    if metal: atom.props["metal"] = metal
-                    if facet: atom.props["facet"] = facet
-                    if site: atom.props["site"] = site
-                product.molecule[0].update()
-            if change_barrier:
-                mol = product.molecule[0].copy(deep=True)
-                mol.clear_labeled_atoms()
-                spcs = Species(molecule=[mol])
-                dHrxn_new += spcs.get_enthalpy(298)
+    #     for reactant in rxn.reactants:
+    #         if change_barrier:
+    #             mol = reactant.molecule[0].copy(deep=True)
+    #             mol.clear_labeled_atoms()
+    #             spcs = Species(molecule=[mol])
+    #             spcs.thermo = thermo_database.get_thermo_data(spcs)
+    #             dHrxn_old -= spcs.thermo.get_enthalpy(298)
+    #         for atom in reactant.molecule[0].atoms:
+    #             if atom.is_surface_site():
+    #                 if "metal" in atom.props: atom.props.pop("metal")
+    #                 if "site" in atom.props: atom.props.pop("site")
+    #                 if "facet" in atom.props: atom.props.pop("facet")
+    #                 if metal: atom.props["metal"] = metal
+    #                 if facet: atom.props["facet"] = facet
+    #                 if site: atom.props["site"] = site
+    #             reactant.molecule[0].update()
+    #         if change_barrier:
+    #             mol = reactant.molecule[0].copy(deep=True)
+    #             mol.clear_labeled_atoms()
+    #             spcs = Species(molecule=[mol])
+    #             spcs.thermo = thermo_database.get_thermo_data(spcs)
+    #             dHrxn_new -= spcs.thermo.get_enthalpy(298)
+    #     for product in rxn.products:
+    #         if change_barrier:
+    #             mol = product.molecule[0].copy(deep=True)
+    #             mol.clear_labeled_atoms()
+    #             spcs = Species(molecule=[mol])
+    #             spcs.thermo = thermo_database.get_thermo_data(spcs)
+    #             dHrxn_old += spcs.thermo.get_enthalpy(298)
+    #         for atom in product.molecule[0].atoms:
+    #             if atom.is_surface_site():
+    #                 if "metal" in atom.props: old_metal = atom.props.pop("metal")
+    #                 if "site" in atom.props: atom.props.pop("site")
+    #                 if "facet" in atom.props: atom.props.pop("facet")
+    #                 if metal: atom.props["metal"] = metal
+    #                 if facet: atom.props["facet"] = facet
+    #                 if site: atom.props["site"] = site
+    #             product.molecule[0].update()
+    #         if change_barrier:
+    #             mol = product.molecule[0].copy(deep=True)
+    #             mol.clear_labeled_atoms()
+    #             spcs = Species(molecule=[mol])
+    #             spcs.thermo = thermo_database.get_thermo_data(spcs)
+    #             dHrxn_new += spcs.thermo.get_enthalpy(298)
     
-        if change_barrier:
-            ddH = dHrxn_new - dHrxn_old
+    #     if change_barrier:
+    #         ddH = dHrxn_new - dHrxn_old
 
-        if isinstance(self.kinetics, SurfaceArrheniusBEP) and change_barrier is True:
-            rxn.kinetics = self.kinetics.to_surface_arrhenius_bep(dHrxn_new)
-            rxn.kinetics.comment += "Corrected from {0} to {1}.".format(old_metal, metal)
-            return rxn
+    #     if isinstance(self.kinetics, SurfaceArrheniusBEP) and change_barrier is True:
+    #         rxn.kinetics = self.kinetics.to_surface_arrhenius_bep(dHrxn_new)
+    #         rxn.kinetics.comment += "Corrected from {0} to {1}.".format(old_metal, metal)
+    #         return rxn
 
-        if isinstance(self.kinetics, SurfaceArrhenius) and change_barrier is True:
-            Ea = max((deepcopy(self.kinetics.Ea).value_si + alpha * ddH), 0.0)
-            rxn.kinetics = SurfaceArrhenius(
-                A=deepcopy(self.kinetics.A),
-                n=deepcopy(self.kinetics.n),
-                Ea=(Ea, 'J/mol'),
-                Tmin=deepcopy(self.kinetics.Tmin),
-                Tmax=deepcopy(self.kinetics.Tmax),
-                comment=deepcopy(self.kinetics.comment),
-            )
-            rxn.kinetics.comment += " Corrected from {0} to {1}".format(old_metal, metal)
-            return rxn
+    #     if isinstance(self.kinetics, SurfaceArrhenius) and change_barrier is True:
+    #         Ea = max((deepcopy(self.kinetics.Ea).value_si + alpha * ddH), 0.0)
+    #         rxn.kinetics = SurfaceArrhenius(
+    #             A=deepcopy(self.kinetics.A),
+    #             n=deepcopy(self.kinetics.n),
+    #             Ea=(Ea, 'J/mol'),
+    #             Tmin=deepcopy(self.kinetics.Tmin),
+    #             Tmax=deepcopy(self.kinetics.Tmax),
+    #             comment=deepcopy(self.kinetics.comment),
+    #         )
+    #         rxn.kinetics.comment += " Corrected from {0} to {1}".format(old_metal, metal)
+    #         return rxn
 
-        rxn.kinetics = deepcopy(self.kinetics)
+    #     rxn.kinetics = deepcopy(self.kinetics)
 
-        return rxn
+    #     return rxn
 
     def to_chemkin(self, species_list=None, kinetics=True):
         """

@@ -554,7 +554,7 @@ class RMG(util.Subject):
         # Seed mechanisms: add species and reactions from seed mechanism
         # DON'T generate any more reactions for the seed species at this time
         for seed_mechanism in self.seed_mechanisms:
-            self.reaction_model.add_seed_mechanism_to_core(seed_mechanism, react=False)
+            self.reaction_model.add_seed_mechanism_to_core(seed_mechanism, react=False, self.metals, self.database.thermo)
 
         # Reaction libraries: add species and reactions from reaction library to the edge so
         # that RMG can find them if their rates are large enough

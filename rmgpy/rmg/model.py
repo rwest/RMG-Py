@@ -1418,7 +1418,7 @@ class CoreEdgeReactionModel:
                     stoichiometry[i, j] = nu
         return stoichiometry.tocsr()
 
-    def add_seed_mechanism_to_core(self, seed_mechanism, react=False):
+    def add_seed_mechanism_to_core(self, seed_mechanism, react=False, metals=[], thermo_database=None):
         """
         Add all species and reactions from `seed_mechanism`, a 
         :class:`KineticsPrimaryDatabase` object, to the model core. If `react`
@@ -1448,6 +1448,18 @@ class CoreEdgeReactionModel:
         seed_mechanism = database.kinetics.libraries[seed_mechanism]
 
         rxns = seed_mechanism.get_library_reactions()
+        if len(metals) > 0:
+            new_reactions = []
+            for rxn in rxns:
+                if not rxn.is_surface_reaction():
+                    new_reactions.append(rxn)
+                else:
+                    for metal_info in metals:
+                        logging.info(metal_info)
+                        metal, facet, site = metal_info
+                        new_reaction = rxn.change_metal(metal, facet, site, change_barrier=True, thermo_database=thermo_database, alpha=0.5)
+                        new_reactions.append(new_reaction)
+            rxns = new_reactions
 
         for rxn in rxns:
             if isinstance(rxn, LibraryReaction) and not (rxn.library in library_names) and not (rxn.library == 'kineticsjobs'):  # if one of the reactions in the library is from another library load that library
@@ -1555,9 +1567,10 @@ class CoreEdgeReactionModel:
                     new_reactions.append(rxn)
                 else:
                     for metal_info in metals:
-                        for metal,facet,site in metal_info:
-                            new_reaction = rxn.change_metal(metal, facet, site, change_barrier=True, thermo_database=thermo_database, alpha=0.5)
-                            new_reactions.append(new_reaction)
+                        logging.info(metal_info)
+                        metal, facet, site = metal_info
+                        new_reaction = rxn.change_metal(metal, facet, site, change_barrier=True, thermo_database=thermo_database, alpha=0.5)
+                        new_reactions.append(new_reaction)
             rxns = new_reactions
 
         for rxn in rxns:

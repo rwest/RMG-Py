@@ -35,6 +35,7 @@ import codecs
 import logging
 import os.path
 import re
+from copy import deepcopy
 from collections import OrderedDict
 
 import numpy as np
@@ -43,7 +44,8 @@ from rmgpy.data.base import DatabaseError, Database, Entry
 from rmgpy.data.kinetics.common import save_entry
 from rmgpy.data.kinetics.family import TemplateReaction
 from rmgpy.kinetics import Arrhenius, ThirdBody, Lindemann, Troe, \
-                           PDepArrhenius, MultiArrhenius, MultiPDepArrhenius, Chebyshev
+                           PDepArrhenius, MultiArrhenius, MultiPDepArrhenius, Chebyshev, \
+                           SurfaceArrhenius, SurfaceArrheniusBEP
 from rmgpy.molecule import Molecule
 from rmgpy.reaction import Reaction
 from rmgpy.species import Species
@@ -139,6 +141,132 @@ class LibraryReaction(Reaction):
         if self.allow_max_rate_violation: string += "allow_max_rate_violation={}, ".format(self.allow_max_rate_violation)
         string = string[:-2] + ')'
         return string
+
+    def copy_library_reaction(self):
+
+        other = LibraryReaction.__new__(LibraryReaction)
+        other.index = self.index
+        other.label = self.label
+        other.reactants = []
+        for reactant in self.reactants:
+            other.reactants.append(reactant.copy(deep=True))
+        other.products = []
+        for product in self.products:
+            other.products.append(product.copy(deep=True))
+        other.degeneracy = self.degeneracy
+        other.specific_collider = self.specific_collider
+        other.kinetics = deepcopy(self.kinetics)
+        other.network_kinetics = deepcopy(self.network_kinetics)
+        other.reversible = self.reversible
+        other.transition_state = deepcopy(self.transition_state)
+        other.duplicate = self.duplicate
+        other.pairs = deepcopy(self.pairs)
+        other.allow_pdep_route = self.allow_pdep_route
+        other.elementary_high_p = self.elementary_high_p
+        other.comment = deepcopy(self.comment)
+        other.library = self.library
+        other.family = self.library
+        other.entry = None
+
+        return other
+
+
+    def change_metal(self, metal, facet=None, site=None, change_barrier=False, thermo_database=None, alpha=0.5):
+
+        if not self.is_surface_reaction():
+            return self
+
+        rxn = self.copy_library_reaction()
+
+        if change_barrier:
+            dHrxn_old = 0.0
+            dHrxn_new = 0.0
+
+        old_metal = None
+
+        for reactant in rxn.reactants:
+            if change_barrier:
+                mol = reactant.molecule[0].copy(deep=True)
+                mol.clear_labeled_atoms()
+                spcs = Species(molecule=[mol])
+                spcs.thermo = thermo_database.get_thermo_data(spcs)
+                dHrxn_old -= spcs.thermo.get_enthalpy(298)
+            for atom in reactant.molecule[0].atoms:
+                if atom.is_surface_site():
+                    if "metal" in atom.props:
+                        atom.props.pop("metal")
+                    if "site" in atom.props:
+                        atom.props.pop("site")
+                    if "facet" in atom.props:
+                        atom.props.pop("facet")
+                    if metal:
+                        atom.props["metal"] = metal
+                    if facet:
+                        atom.props["facet"] = facet
+                    if site:
+                        atom.props["site"] = site
+                reactant.molecule[0].update()
+            if change_barrier:
+                mol = reactant.molecule[0].copy(deep=True)
+                mol.clear_labeled_atoms()
+                spcs = Species(molecule=[mol])
+                spcs.thermo = thermo_database.get_thermo_data(spcs)
+                dHrxn_new -= spcs.thermo.get_enthalpy(298)
+        for product in rxn.products:
+            if change_barrier:
+                mol = product.molecule[0].copy(deep=True)
+                mol.clear_labeled_atoms()
+                spcs = Species(molecule=[mol])
+                spcs.thermo = thermo_database.get_thermo_data(spcs)
+                dHrxn_old += spcs.thermo.get_enthalpy(298)
+            for atom in product.molecule[0].atoms:
+                if atom.is_surface_site():
+                    if "metal" in atom.props:
+                        old_metal = atom.props.pop("metal")
+                    if "site" in atom.props:
+                        atom.props.pop("site")
+                    if "facet" in atom.props:
+                        atom.props.pop("facet")
+                    if metal:
+                        atom.props["metal"] = metal
+                    if facet:
+                        atom.props["facet"] = facet
+                    if site:
+                        atom.props["site"] = site
+                product.molecule[0].update()
+            if change_barrier:
+                mol = product.molecule[0].copy(deep=True)
+                mol.clear_labeled_atoms()
+                spcs = Species(molecule=[mol])
+                spcs.thermo = thermo_database.get_thermo_data(spcs)
+                dHrxn_new += spcs.thermo.get_enthalpy(298)
+
+        if change_barrier:
+            ddH = dHrxn_new - dHrxn_old
+
+        if isinstance(self.kinetics, SurfaceArrheniusBEP) and change_barrier is True:
+            rxn.kinetics = self.kinetics.to_surface_arrhenius_bep(dHrxn_new)
+            rxn.kinetics.comment += "Corrected from {0} to {1}.".format(
+                old_metal, metal)
+            return rxn
+
+        if isinstance(self.kinetics, SurfaceArrhenius) and change_barrier is True:
+            Ea = max((deepcopy(self.kinetics.Ea).value_si + alpha * ddH), 0.0)
+            rxn.kinetics = SurfaceArrhenius(
+                A=deepcopy(self.kinetics.A),
+                n=deepcopy(self.kinetics.n),
+                Ea=(Ea, 'J/mol'),
+                Tmin=deepcopy(self.kinetics.Tmin),
+                Tmax=deepcopy(self.kinetics.Tmax),
+                comment=deepcopy(self.kinetics.comment),
+            )
+            rxn.kinetics.comment += " Corrected from {0} to {1}".format(
+                old_metal, metal)
+            return rxn
+
+        rxn.kinetics = deepcopy(self.kinetics)
+
+        return rxn
 
     def get_source(self):
         """
