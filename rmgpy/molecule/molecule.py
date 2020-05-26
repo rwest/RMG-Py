@@ -1280,7 +1280,7 @@ class Molecule(Graph):
             v2.sorting_label = v1.sorting_label
         other.multiplicity = self.multiplicity
         other.reactive = self.reactive
-        other.props = self.props
+        other.props = deepcopy(self.props)
         return other
 
     def merge(self, other):
@@ -1583,7 +1583,7 @@ class Molecule(Graph):
                 return False
             if self.props.get('site') != other.props.get('site'):
                 return False
-                
+
         # Check multiplicity
         if group.multiplicity:
             if self.multiplicity not in group.multiplicity: return False
