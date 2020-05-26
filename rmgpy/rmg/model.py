@@ -277,7 +277,7 @@ class CoreEdgeReactionModel:
 
         # If desired, check to ensure that the species is new; return the
         # existing species if not new
-        if check_existing and not molecule.contains_surface_site():
+        if check_existing:
             spec = self.check_for_existing_species(molecule)
             if spec is not None:
                 return spec, False
