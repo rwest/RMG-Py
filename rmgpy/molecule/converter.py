@@ -83,11 +83,11 @@ def to_rdkit_mol(mol, remove_h=True, return_mapping=False, sanitize=True):
 
     rd_bonds = Chem.rdchem.BondType
     orders = {'S': rd_bonds.SINGLE, 'D': rd_bonds.DOUBLE, 'T': rd_bonds.TRIPLE, 'B': rd_bonds.AROMATIC,
-              'Q': rd_bonds.QUADRUPLE}
+              'Q': rd_bonds.QUADRUPLE, 'vdW': rd_bonds.ZERO}
     # Add the bonds
     for atom1 in mol.vertices:
         for atom2, bond in atom1.edges.items():
-            if bond.is_hydrogen_bond():
+            if bond.is_hydrogen_bond() or bond.is_van_der_waals():
                 continue
             index1 = atoms.index(atom1)
             index2 = atoms.index(atom2)
@@ -237,7 +237,7 @@ def to_ob_mol(mol, return_mapping=False):
     orders = {1: 1, 2: 2, 3: 3, 4: 4, 1.5: 5}
     for atom1 in mol.vertices:
         for atom2, bond in atom1.edges.items():
-            if bond.is_hydrogen_bond():
+            if bond.is_hydrogen_bond() or bond.is_van_der_waals():
                 continue
             index1 = atoms.index(atom1)
             index2 = atoms.index(atom2)
