@@ -295,7 +295,10 @@ class Database(object):
                     # Finish this adjacency list
                     species = Species().from_adjacency_list(adjlist)
                     if resonance:
-                        species.generate_resonance_structures()
+                        try:
+                            species.generate_resonance_structures()
+                        except:
+                            species = Species().from_adjacency_list(adjlist)
                     label = species.label
                     if label in species_dict:
                         raise DatabaseError('Species label "{0}" used for multiple species in {1}.'.format(label,
