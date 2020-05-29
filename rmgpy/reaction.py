@@ -660,25 +660,32 @@ class Reaction:
         # Convert Ka to Kc or Kp if specified
         # Assume a pressure of 1e5 Pa for gas phase species
         P0 = 1e5
+        C_surf_ref = 2.5e-5  # mol/m^2
         # Determine the number of gas phase reactants and products. The change in mols
         # of gas will be used to determine Kc and Kp since solid species have reference
         # concentration of 1
         try:
-            gas_reacts = [spcs for spcs in self.reactants if not spcs.contains_surface_site()]
-            gas_prods = [spcs for spcs in self.products if not spcs.contains_surface_site()]
+            surf_reacts = [spcs for spcs in self.reactants if spcs.contains_surface_site()]
+            surf_prods = [spcs for spcs in self.products if spcs.contains_surface_site()]
+            gas_reacts = len(self.reactants) - len(surf_reacts)
+            gas_prods = len(self.products) - len(surf_prods)
         except IndexError:
             logging.warning(f"Species do not have an rmgpy.molecule.Molecule "  
                             "Cannot determine phases of species. We will assume "
                             "ideal gas mixture when calculating Kc and Kp.")
             gas_reacts = self.reactants
             gas_prods = self.products
+            surf_reacts = 0
+            surf_prods = 0
         if type == 'Kc':
             # Convert from Ka to Kc; C0 is the reference concentration
             C0 = P0 / constants.R / T
             K *= C0 ** (len(gas_prods) - len(gas_reacts))
+            K *= C_surf_ref ** (len(surf_reacts) - len(surf_reacts))
         elif type == 'Kp':
             # Convert from Ka to Kp; P0 is the reference pressure
             K *= P0 ** (len(gas_prods) - len(gas_reacts))
+            K *= C_surf_ref ** (len(surf_reacts) - len(surf_reacts))
         elif type != 'Ka' and type != '':
             raise ReactionError('Invalid type "{0}" passed to Reaction.get_equilibrium_constant(); '
                                 'should be "Ka", "Kc", or "Kp".'.format(type))
