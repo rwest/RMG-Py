@@ -1118,7 +1118,14 @@ class KineticsFamily(Database):
                 product, training_set=True)
             dHrxn += product.thermo.get_enthalpy(298)
         
-        alpha = 0.5
+        if dHrxn < -1e6: # -1000 kJ/mol 
+            alpha = 0.0
+        elif dHrxn < -1e5: # -100 kJ/mol 
+            alpha = 0.1
+        elif dHrxn < -1e4: # -10 kJ/mol 
+            alpha = 0.25
+        else:
+            alpha = 0.5
 
         return dHrxn, alpha
 
@@ -1263,7 +1270,14 @@ class KineticsFamily(Database):
                 product.thermo = thermo_database.get_thermo_data(product, training_set=True)
                 dHrxn -= product.thermo.get_enthalpy(298)  # thermo in reverse
              
-            alpha = 0.5
+            if dHrxn < -1e6: # -1000 kJ/mol 
+                alpha = 0.0
+            elif dHrxn < -1e5: # -100 kJ/mol 
+                alpha = 0.1
+            elif dHrxn < -1e4: # -10 kJ/mol 
+                alpha = 0.25
+            else:
+                alpha = 0.5
             
             # Now that we have the thermo, we can get the reverse k(T)
             item.kinetics = data
