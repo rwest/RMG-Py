@@ -667,8 +667,8 @@ class Reaction:
         try:
             surf_reacts = len([spcs for spcs in self.reactants if spcs.contains_surface_site()])
             surf_prods = len([spcs for spcs in self.products if spcs.contains_surface_site()])
-            gas_reacts = len(self.reactants) - len(surf_reacts)
-            gas_prods = len(self.products) - len(surf_prods)
+            gas_reacts = len(self.reactants) - surf_reacts
+            gas_prods = len(self.products) - surf_prods
         except IndexError:
             logging.warning(f"Species do not have an rmgpy.molecule.Molecule "  
                             "Cannot determine phases of species. We will assume "
