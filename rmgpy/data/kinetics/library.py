@@ -244,6 +244,15 @@ class LibraryReaction(Reaction):
         if change_barrier:
             ddH = dHrxn_new - dHrxn_old
 
+        if dHrxn_old < -1e6:  # -1000 kJ/mol
+            alpha = 0.0
+        elif dHrxn_old < -1e5: # -100 kJ/mol 
+            alpha = 0.1
+        elif dHrxn_old < -1e4:  # -10 kJ/mol
+            alpha = 0.25
+        else:
+            alpha = 0.5
+
         if isinstance(self.kinetics, SurfaceArrheniusBEP) and change_barrier is True:
             rxn.kinetics = self.kinetics.to_surface_arrhenius_bep(dHrxn_new)
             rxn.kinetics.comment += "Corrected from {0} to {1}.".format(
