@@ -2392,6 +2392,13 @@ $('#thermomatches_count').html("("+json.thermomatches+")");
         return ('\n'.join(output))
 
     @cherrypy.expose
+    def killjob_html(self):
+        logging.warning("Job killed by user request")
+        cherrypy.engine.exit()
+        os._exit(0)
+
+
+    @cherrypy.expose
     def thermomatches_html(self):
         img = self._img
         output = [self.html_head(), '<h1>{0} Thermochemistry Matches</h1>'.format(len(self.thermo_matches))]
