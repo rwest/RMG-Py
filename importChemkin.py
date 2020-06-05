@@ -2391,7 +2391,25 @@ $('#thermomatches_count').html("("+json.thermomatches+")");
         output = [self.html_head(), "<h1> Deleting errors</h1>", "<ol>"]
         for name in errors:
             output.append(f'<li>{name}</li>')
-        output.extend(['</ol>',self.html_tail])
+        
+        out = []
+        with open(self.known_species_file) as infile:
+            for line in infile:
+                try:
+                    label = line.strip().split()[0]
+                    if label in errors:
+                        out.append(f"! Deleted by {self.get_username()}: "+line)
+                        continue
+                except:
+                    pass
+                out.append(line)
+        
+        with open(self.known_species_file,'w') as outfile:
+            outfile.writelines(out)
+                
+        output.extend(['</ol>',
+            "<a href='/killjob.html'><button type='button'>Kill job</button></a>",
+            self.html_tail])
         return ('\n'.join(output))
 
     @cherrypy.expose
