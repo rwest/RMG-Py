@@ -565,6 +565,9 @@ class ModelMatcher():
                             if usermatch:
                                 user = usermatch.group(1)
                     tokens = line.split()
+                    if len(tokens) == 0:
+                        # blank line (after comments removed)
+                        continue
                     assert len(tokens) == 2, "Not two tokens on line (was expecting NAME    SMILES)"
                     name, smiles = tokens
                     if name in known_smiles:
