@@ -2359,17 +2359,35 @@ $('#thermomatches_count').html("("+json.thermomatches+")");
     @cherrypy.expose
     def identified_html(self):
         img = self._img
-        return (self.html_head() + '<h1>{0} Identified Species</h1><table style="width:500px"><tr>'.format(len(self.identified_labels)) +
-                "</tr>\n<tr>".join([
-                        "<td>{number}</td><td>{label}</td><td>{img}</td><td>{user}</td>".format(
+        return (self.html_head() + 
+        f"""<h1>{len(self.identified_labels)} Identified Species</h1>
+        <form action="/deletemistakes.html" method="get">
+        <table style="width:500px"><tr> </tr>""" +
+         "<tr>".join([
+                        """<td>{number}</td><td>{label}</td><td>{img}</td><td>{user}</td>
+                        <td><input type="checkbox" name="errors" value="{label}" /></td>
+                        """.format(
                                 img=img(self.species_dict_rmg[lab]),
                                 label=lab,
                                 number=n + 1,
                                 user = self.identified_by.get(lab,"-"),
                                 ) for n, lab in enumerate(self.identified_labels)
                             ]) +
-                '</tr></table>' + self.html_tail)
-        
+                '</tr></table><input type="submit" value="Delete"></form>' + self.html_tail)
+    
+    @cherrypy.expose
+    def deletemistakes_html(self, errors=None):
+        """
+        Process the form from identified_html to remove mistaktes
+        """
+        if not errors:
+            return "Nothing to delete"
+        output = [self.html_head(), "<h1> Deleting errors</h1>", "<ol>"]
+        for name in errors:
+            output.append(f'<li>{name}</li>')
+        output.extend(['</ol>',self.html_tail])
+        return ('\n'.join(output))
+
     @cherrypy.expose
     def thermomatches_html(self):
         img = self._img
