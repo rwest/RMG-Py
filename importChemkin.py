@@ -2365,7 +2365,8 @@ $('#thermomatches_count').html("("+json.thermomatches+")");
         return (self.html_head() + 
         f"""<h1>{len(self.identified_labels)} Identified Species</h1>
         <form action="/deletemistakes.html" method="get">
-        <table style="width:500px"><tr> </tr>""" +
+        <table style="width:500px"><tr>
+        <th>#</th><th>Label</th><th>Molecule</th><th>Identified by</th><th>Delete?</th></tr>""" +
          "<tr>".join([
                         """<td>{number}</td><td>{label}</td><td>{img}</td><td>{user}</td>
                         <td><input type="checkbox" name="errors" value="{label}" /></td>
@@ -2376,7 +2377,9 @@ $('#thermomatches_count').html("("+json.thermomatches+")");
                                 user = self.identified_by.get(lab,"-"),
                                 ) for n, lab in enumerate(self.identified_labels)
                             ]) +
-                '</tr></table><input type="submit" value="Delete"></form>' + self.html_tail)
+                """</tr>
+                <tr><td colspan=4></td><td><input type="submit" value="Delete"></td></tr>
+                </table></form>""" + self.html_tail)
     
     @cherrypy.expose
     def deletemistakes_html(self, errors=None):
