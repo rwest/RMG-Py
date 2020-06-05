@@ -721,19 +721,9 @@ class ModelMatcher():
         rmg.database_directory = database_dictionary
         rmg.thermo_libraries = ['primaryThermoLibrary',
                                'BurkeH2O2',
-                               'DFT_QCI_thermo',
-                               'CBS_QB3_1dHR',
-                               'FFCM1(-)',
-                               'GRI-Mech3.0-N',
-                               'JetSurF2.0',
-                               'CurranPentane', ]
-        rmg.kinetics_families = ['default','fake_for_importer']
-        rmg.reaction_libraries = [('BurkeH2O2inN2', False),
-                                 ('FFCM1(-)', False),
-                                 ('JetSurF2.0', False),
-                                 ('CurranPentane', False),
-                                 ('Glarborg/highP', False),
-                                 ('GRI-Mech3.0-N', False), ]
+                               'DFT_QCI_thermo', ]
+        rmg.kinetics_families = ['fake_for_importer']
+        rmg.reaction_libraries = [('BurkeH2O2inN2', False),]
 
         rmgpy.rmg.input.rmg = rmg  # put it in this scope so these functions can modify it
 
