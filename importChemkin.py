@@ -811,10 +811,12 @@ class ModelMatcher():
         # find kinetics without crashing.
         logging.info('Adding rate rules from training set in kinetics families...')
         for family in rmg.database.kinetics.families.values():
-            family.add_rules_from_training(thermo_database=rmg.database.thermo)
+            if not family.auto_generated:
+                family.add_rules_from_training(thermo_database=rmg.database.thermo)
         logging.info('Filling in rate rules in kinetics families by averaging...')
         for family in rmg.database.kinetics.families.values():
-            family.fill_rules_by_averaging_up()
+            if not family.auto_generated:
+                family.fill_rules_by_averaging_up()
 
         self.rmg_object = rmg
         return rmg
