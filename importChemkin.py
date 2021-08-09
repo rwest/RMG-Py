@@ -670,6 +670,12 @@ class ModelMatcher():
                             2 C u0 p1 c0 {1,S} {3,S}
                             3 F u0 p3 c0 {2,S}
                             """,
+            'singletF[C]Cl': """
+                            multiplicity 1
+                            1 F u0 p3 c0 {2,S}
+                            2 C u0 p1 c0 {1,S} {3,S}
+                            3 Cl u0 p3 c0 {2,S}
+                            """,
             'doublet[C]F': """
                             multiplicity 2
                             1 C u1 p1 c0 {2,S}
