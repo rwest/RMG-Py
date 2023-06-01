@@ -1,0 +1,32 @@
+name: Conda Build
+
+on:
+  push:
+    branches:
+      - conda_build
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          environment-file: environment.yml
+          python-version: 3.7
+          activate-environment: rmg_env
+      - name: Conda info
+        run: |
+          conda info
+          conda list
+      - name: Build Binary
+        env: 
+          CONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        run: |
+          conda install -y conda-build 
+          conda install -y anaconda-client 
+          conda config --add channels rmg --add channels cantera --add channels sharris7
+          conda config --set anaconda_upload yes
+          conda build --token $CONDA_TOKEN --user sharris7 .conda
