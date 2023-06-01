@@ -1,4 +1,4 @@
-name: Conda Build
+name: Sevy's Conda Build
 
 on:
   push:
