@@ -14,9 +14,12 @@ jobs:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          environment-file: environment.yml
           python-version: 3.7
-          activate-environment: rmg_env
+          conda-build-version: 3
+      - name: Install conda-build
+        run: |
+          conda install -y conda-build>=2
+          conda install -y anaconda-client 
       - name: Conda info
         run: |
           conda info
@@ -25,8 +28,6 @@ jobs:
         env: 
           CONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
         run: |
-          conda install -y conda-build>=2
-          conda install -y anaconda-client 
           conda config --add channels rmg --add channels cantera --add channels rwest
           conda config --set anaconda_upload yes
           conda build --token $CONDA_TOKEN --user rwest .conda
