@@ -27,6 +27,6 @@ jobs:
         env: 
           CONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
         run: |
-          conda config --add channels rmg --add channels cantera --add channels rwest
+          conda config --add channels rmg --add channels cantera --add channels conda-forge
           conda config --set anaconda_upload yes
           conda build --token $CONDA_TOKEN --user rwest .conda
