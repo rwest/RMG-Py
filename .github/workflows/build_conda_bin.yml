@@ -17,6 +17,8 @@ jobs:
           python-version: 3.7
       - name: Install conda-build
         run: |
+          conda install -n base conda-libmamba-solver
+          conda config --set solver libmamba
           conda install -y conda-build>=2
           conda install -y anaconda-client
       - name: Conda info
