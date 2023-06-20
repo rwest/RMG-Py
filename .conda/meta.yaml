@@ -15,12 +15,12 @@ requirements:
   host:
     - cython >=0.25.2
     - lpsolve55
-    - numpy
+    - numpy {{ numpy }}
     - openbabel >=3
     - pydas >=1.0.2
     - pydqed >=1.0.1
     - pyrdl
-    - python
+    - python {{ python }}
     - quantities
     - rdkit >=2018
     - scipy
