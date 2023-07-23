@@ -287,8 +287,7 @@ class TestArrheniusEP:
     """
 
     def setup_class(self):
-        self.A = 1.0e12
-        self.n = 0.5
+        f.n = 0.5
         self.alpha = 0.5
         self.E0 = 41.84
         self.Tmin = 300.0
