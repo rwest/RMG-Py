@@ -769,7 +769,7 @@ class StatMechJob(object):
                 rotor_count += 2
             elif len(q) == 5 and isinstance(q[1][0], list):
                 scan_dir, pivots, tops, sigmas, semiclassical = q
-                rotor = HinderedRotorClassicalND(
+                rotor = hinderedRotorClassicalND(
                     pivots,
                     tops,
                     sigmas,
