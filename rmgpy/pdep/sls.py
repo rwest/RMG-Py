@@ -38,14 +38,11 @@ from julia import Main
 import scipy.sparse as sparse
 import numpy as np
 import scipy.linalg
-import mpmath
 import scipy.optimize as opt
 
 import rmgpy.constants as constants
-from rmgpy.pdep.reaction import calculate_microcanonical_rate_coefficient
-from rmgpy.pdep.me import generate_full_me_matrix, states_to_configurations
-from rmgpy.statmech.translation import IdealGasTranslation
 
+from rmgpy.pdep.me import generate_full_me_matrix, states_to_configurations
 
 def get_initial_condition(network, x0, indices):
     """
