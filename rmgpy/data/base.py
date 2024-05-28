@@ -236,8 +236,14 @@ class Database(object):
             local_context[key] = value
 
         # Process the file
+<<<<<<< Updated upstream
         with open(path, 'r') as f:
             content = f.read()
+=======
+        f = open(path, 'r')
+        if "Intra_R_Add_Endocyclic/rules" in path:
+            print(f.read())
+>>>>>>> Stashed changes
         try:
             exec(content, global_context, local_context)
         except Exception as e:

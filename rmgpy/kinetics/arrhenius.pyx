@@ -622,13 +622,16 @@ cdef class ArrheniusBM(KineticsModel):
         ydata = []
         sigmas = []
         E0 = 0.0
+        print(f'position 1, {E0}')
         lnA = 0.0
         n = 0.0
         for rxn in rxns:
             # approximately correct the overall uncertainties to std deviations
             s = rank_accuracy_map[rxn.rank].value_si/2.0
             # Use BEP with alpha = 0.25 for inital guess of E0
+            print(f'term 1: {rxn.kinetics._Ea.value_si}, term 2: { - 0.25 * rxn.get_enthalpy_of_reaction(298)}')
             E0 += rxn.kinetics._Ea.value_si - 0.25 * rxn.get_enthalpy_of_reaction(298)
+            print(f'position 2: {E0}')
             lnA += np.log(rxn.kinetics.A.value_si)
             n += rxn.kinetics.n.value_si
             for T in Ts:
@@ -637,11 +640,15 @@ cdef class ArrheniusBM(KineticsModel):
                 sigmas.append(s / (constants.R * T))
         # Use the average of the E0s as intial guess
         E0 /= len(rxns)
+        print(f'position 3: {E0}')
         lnA /= len(rxns)
         n /= len(rxns)
-        E0 = min(E0, w0)
+        w0 = max(2 * E0, w0) # Expression only works if w0>2E0, and is insensitive to w0
+        self.w0 = (w0 * 0.001, 'kJ/mol')
+        print(f'position 4: {E0}')
         if E0 < 0:
             E0 = w0 / 100.0
+            print(f'position 5: {E0}')
 
         xdata = np.array(xdata)
         ydata = np.array(ydata)
@@ -656,12 +663,15 @@ cdef class ArrheniusBM(KineticsModel):
             try:
                 params = curve_fit(kfcn, xdata, ydata, sigma=sigmas, p0=[lnA, n, E0], xtol=xtol, ftol=ftol)
                 lnA, n, E0 = params[0].tolist()
+                print(f'position 6: {E0}')
                 if abs(E0/self.w0.value_si) > 1 and attempts < 5:
                     boo = True
                     if attempts > 0:
                         self.w0.value_si *= 1.25
+                        print('position 7')
                     attempts += 1
                     E0 = self.w0.value_si / 10.0
+                    print(f'position 8: {E0}')
             except RuntimeError:
                 if xtol < 1.0:
                     boo = True
@@ -682,7 +692,9 @@ cdef class ArrheniusBM(KineticsModel):
         self.A = (A, A_units[order])
 
         self.n = n
+        print(f'position 9: {E0}')
         self.E0 = (E0 * 0.001, 'kJ/mol')
+        print(f'position 10: {E0}')
 
         return self
 
