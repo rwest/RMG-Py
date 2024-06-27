@@ -55,7 +55,7 @@ dependencies:
   - conda-forge::pyjuliacall # for calling julia packages
 
 # Python tools
-  - python =3.11,3.12
+  - python =3.10,3.11,3.12
   - coverage
   - cython >=0.25.2
   - scikit-learn
