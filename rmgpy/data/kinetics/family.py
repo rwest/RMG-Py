@@ -1384,8 +1384,8 @@ class KineticsFamily(Database):
         will be reversed to assist in identifying forbidden structures.
         """
         #added in by NK
-        print(reactant_structures)
-        logging.info(reactant_structures)
+        #print(reactant_structures)
+        #logging.info(reactant_structures)
         
         # There is some hardcoding of reaction families in this function, so
         # we need the label of the reaction family for this
@@ -1564,7 +1564,7 @@ class KineticsFamily(Database):
                 struct.reset_ring_membership()
                 if label in ['1,2_insertion_co', 'r_addition_com', 'co_disproportionation',
                              'intra_no2_ono_conversion', 'lone_electron_pair_bond',
-                             '1,2_nh3_elimination', '1,3_nh3_elimination']:
+                             '1,2_nh3_elimination', '1,3_nh3_elimination', 'co2_elimination_from_lactone_ether']:
                     struct.update_charge()
             else:
                 raise TypeError('Expecting Molecule or Group object, not {0}'.format(struct.__class__.__name__))
