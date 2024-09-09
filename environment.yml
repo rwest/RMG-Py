@@ -21,7 +21,6 @@
 #
 name: rmg_env
 channels:
-  - defaults
   - rmg
   - conda-forge
   - cantera
