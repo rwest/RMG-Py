@@ -63,9 +63,7 @@ def filter_structures(mol_list, mark_unreactive=True, allow_expanded_octet=True,
             mol.update()
     if not all([(mol.multiplicity == mol_list[0].multiplicity) for mol in mol_list]):
         raise ValueError("Cannot filter structures with different multiplicities!")
-
-    if 'F' in mol_list[0].smiles: 
-        print('testing')
+    
     # Get an octet deviation list
     octet_deviation_list = get_octet_deviation_list(mol_list, allow_expanded_octet=allow_expanded_octet)
 
