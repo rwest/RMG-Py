@@ -71,11 +71,11 @@ jobs:
         uses: actions/checkout@v4
 
       # configures the mamba environment manager and builds the environment
-      - name: Setup Mambaforge Python ${{ matrix.python-version }}
+      - name: Setup Miniforge Python ${{ matrix.python-version }}
         uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: environment.yml
-          miniforge-variant: Mambaforge
+          miniforge-variant: Miniforge3
           miniforge-version: latest
           python-version: ${{ matrix.python-version }}
           activate-environment: rmg_env
